@@ -119,10 +119,10 @@
 </div>
 <script>
     // ══════════════════════════════════════════════
-    // CONFIGURAÇÃO SUPABASE (apenas variáveis de ambiente)
+    // CONFIGURAÇÃO SUPABASE (chaves diretas)
     // ══════════════════════════════════════════════
-    const SUPABASE_URL = window.__env__?.SUPABASE_URL || 'https://ysdqgnljhnczrgdllebj.supabase.co';
-    const SUPABASE_ANON_KEY = window.__env__?.SUPABASE_ANON_KEY || 'sb_publishable_fHLVBcsUryHoirpakQOZoA_TMeij-uI';
+    const SUPABASE_URL = 'https://ysdqgnljhnczrgdllebj.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_fHLVBcsUryHoirpakQOZoA_TMeij-uI';
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const DU=22;
@@ -164,7 +164,7 @@
                 `<div class="alerta alerta-erro" style="text-align:center;padding:40px;">
                     ❌ Erro de conexão com o banco de dados.<br>
                     <small>${e.message}</small><br><br>
-                    <small>Verifique se as variáveis SUPABASE_URL e SUPABASE_ANON_KEY estão configuradas no Vercel.</small>
+                    <small>Verifique se as tabelas foram criadas no Supabase.</small>
                 </div>`;
         }
     }
