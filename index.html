@@ -118,11 +118,16 @@
     </div>
 </div>
 <script>
-(function(){
-    // ✅ CORREÇÃO: usar window.supabase e variável "db" para não conflitar
-    const SUPABASE_URL = '{{SUPABASE_URL}}';
-    const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ══════════════════════════════════════════════
+    // CONFIGURAÇÃO SUPABASE
+    // Para usar localmente: preencha abaixo com suas chaves
+    // No Vercel: as variáveis são injetadas automaticamente
+    // ══════════════════════════════════════════════
+    const SUPABASE_URL = window.__env__?.SUPABASE_URL || localStorage.getItem('sb_url') || '';
+    const SUPABASE_ANON_KEY = window.__env__?.SUPABASE_ANON_KEY || localStorage.getItem('sb_key') || '';
+    const db = (SUPABASE_URL && SUPABASE_ANON_KEY)
+        ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        : null;
 
     const DU=22;
     const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -136,6 +141,24 @@
     // CARREGAR DADOS DO SUPABASE
     // ══════════════════════════════
     async function load(){
+        if(!db){
+            document.getElementById('main-content').innerHTML=`
+                <div style="max-width:500px;margin:60px auto;background:#fff;border-radius:14px;padding:30px;box-shadow:0 2px 20px rgba(0,0,0,.1);">
+                    <h2 style="color:#E91E63;margin-bottom:16px;">⚙️ Configuração Necessária</h2>
+                    <p style="color:#555;margin-bottom:20px;font-size:13px;">Para usar localmente, informe suas chaves do Supabase:</p>
+                    <div style="margin-bottom:10px;">
+                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">URL do Supabase</label>
+                        <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">Chave Anon Key</label>
+                        <input type="text" id="cfg-key" placeholder="eyJhbGci..." style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
+                    </div>
+                    <button onclick="salvarConfig()" style="background:#E91E63;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔌 Conectar</button>
+                    <p style="font-size:10px;color:#999;margin-top:12px;">💡 No Vercel as chaves são configuradas automaticamente nas variáveis de ambiente.</p>
+                </div>`;
+            return;
+        }
         try{
             let r;
             r = await db.from('vendedoras').select('*');
@@ -243,6 +266,11 @@
     // DASHBOARD
     // ══════════════════════════════
     function dashboard(){
+        if(!V.length && db){
+            document.getElementById('main-content').innerHTML='<div class="loading">Carregando dados...</div>';
+            setTimeout(()=>{ if(V.length) dashboard(); },1000);
+            return;
+        }
         let rm=realMes(mes,2026),pmin=Math.min((rm/ML.min)*100,100),pmax=Math.min((rm/ML.max)*100,100),pbig=Math.min((rm/ML.big)*100,100),lyv=lyMes(mes,2026),vly=lyv>0?((rm-lyv)/lyv)*100:0;
         document.getElementById('main-content').innerHTML=`
         <div class="page-header">
@@ -261,6 +289,7 @@
             <div class="grafico-card full"><h4>Semanas</h4><canvas id="g3"></canvas></div>
         </div>`;
         setTimeout(()=>{
+            if(!V.length) return;
             let d=diasUteis(mes,2026), mt=V.reduce((s,v)=>s+metaMes(v.nome,mes)/DU,0);
             new Chart(document.getElementById('g1'),{type:'bar',data:{labels:d.map(x=>x.dia),datasets:[
                 {label:'Realizado',data:d.map(x=>realData(x.data)),backgroundColor:'#E91E63',borderRadius:4},
@@ -283,6 +312,7 @@
     // LANÇAMENTOS
     // ══════════════════════════════
     function lancamentos(){
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
         let d=diasUteis(mes,2026),s=semanas(mes,2026),mt=V.reduce((acc,v)=>acc+metaMes(v.nome,mes)/DU,0),tr=0,tp=0,ta=0,tcv=0;
         let h=`<div class="page-header"><h1>Controle Diário • ${MN[mes]} 2026</h1>
         <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};lancamentos()">${m.substring(0,3)}</button>`).join('')}</div></div>
@@ -318,6 +348,7 @@
     // VENDEDORAS
     // ══════════════════════════════
     function vendedoras(){
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
         let d=diasUteis(mes,2026);
         let h=`<div class="page-header"><h1>Painel Vendedoras • ${MN[mes]} 2026</h1>
         <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};vendedoras()">${m.substring(0,3)}</button>`).join('')}</div></div>`;
@@ -354,6 +385,8 @@
     // MEU PAINEL
     // ══════════════════════════════
     function painelVend(){
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
+        if(vendSel >= V.length) vendSel = 0;
         let v=V[vendSel],mv=metaMes(v.nome,mes),rm=realVendMes(v.nome,mes,2026),pm=pecVendMes(v.nome,mes,2026),am=atendVendMes(v.nome,mes,2026),cmv=condVendMes(v.nome,mes,2026),sm=semanas(mes,2026);
         let pa=am>0?pm/am:0,tm=am>0?rm/am:0,tx=am>0?(pm/am)*100:0,perc=mv>0?(rm/mv)*100:0;
         let h=`<div class="page-header"><h1>Meu Painel • ${MN[mes]} 2026</h1>
@@ -573,15 +606,21 @@
         await saveL(); fechaModal(); lancamentos();
     }
 
-    // Expor funções globais necessárias para os onclick no HTML gerado dinamicamente
-    window.nav=nav; window.abreModal=abreModal; window.fechaModal=fechaModal;
-    window.salvaModal=salvaModal; window.excluir=excluir; window.lv=lv;
-    window.addV=addV; window.renV=renV; window.altM=altM; window.remV=remV;
-    window.saveMM2=saveMM2; window.saveMS2=saveMS2; window.saveML2=saveML2; window.saveLY2=saveLY2;
+    // ══════════════════════════════
+    // CONFIGURAÇÃO LOCAL
+    // ══════════════════════════════
+    function salvarConfig(){
+        const url = document.getElementById('cfg-url')?.value?.trim();
+        const key = document.getElementById('cfg-key')?.value?.trim();
+        if(!url || !key){ alert('Preencha a URL e a chave.'); return; }
+        localStorage.setItem('sb_url', url);
+        localStorage.setItem('sb_key', key);
+        location.reload();
+    }
+    window.salvarConfig = salvarConfig;
 
     // Iniciar
     load();
-})();
 </script>
 </body>
 </html>
