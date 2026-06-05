@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lilica e Tigor • Painel de Metas 2026</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
     <style>
         :root {
             --rosa: #E91E63;
@@ -18,202 +18,635 @@
             --vermelho: #c62828;
             --sidebar-width: 240px;
         }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Segoe UI', system-ui, sans-serif; background:var(--cinza-fundo); color:var(--texto); display:flex; min-height:100vh; }
-        .sidebar { width:var(--sidebar-width); background:#1a1a2e; color:#fff; position:fixed; top:0; left:0; bottom:0; z-index:1000; overflow-y:auto; }
-        .sidebar-logo { padding:24px 20px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.1); }
-        .sidebar-logo h2 { font-size:19px; color:var(--rosa); }
-        .sidebar-logo .ano { font-size:10px; color:var(--dourado); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
-        .sidebar-nav a { display:flex; align-items:center; gap:10px; padding:13px 20px; color:#bbb; text-decoration:none; font-size:14px; cursor:pointer; border-left:3px solid transparent; transition:.2s; }
-        .sidebar-nav a:hover, .sidebar-nav a.ativo { background:rgba(233,30,99,0.15); color:#fff; border-left-color:var(--rosa); }
-        .nav-label { padding:15px 20px 5px; font-size:9px; text-transform:uppercase; letter-spacing:2px; color:#666; font-weight:700; }
-        .main-content { margin-left:var(--sidebar-width); flex:1; padding:20px 25px; }
-        .page-header { background:var(--branco); padding:16px 22px; border-radius:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
-        .page-header h1 { font-size:21px; font-weight:700; color:#444; }
-        .mes-selector { display:flex; gap:4px; flex-wrap:wrap; }
-        .mes-btn { padding:6px 11px; border:2px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; font-size:11px; font-weight:600; transition:.2s; }
-        .mes-btn.ativo { background:var(--rosa); color:#fff; border-color:var(--rosa); }
-        .cards-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
-        .card-meta { background:var(--branco); border-radius:14px; padding:18px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.04); border-top:5px solid #ddd; }
-        .card-meta .card-titulo { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#999; font-weight:700; margin-bottom:4px; }
-        .card-meta .card-valor { font-size:22px; font-weight:700; color:#333; }
-        .card-meta .card-sub { font-size:11px; color:#888; margin-top:2px; }
-        .progresso-bar { height:6px; background:#eee; border-radius:10px; margin-top:10px; overflow:hidden; }
-        .progresso-preenchido { height:100%; border-radius:10px; transition:width .5s; }
-        .bloco { background:var(--branco); border-radius:14px; padding:20px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
-        .bloco h3 { font-size:15px; color:#555; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #f0f0f0; }
-        .graficos-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
-        .grafico-card { background:var(--branco); border-radius:14px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
-        .grafico-card.full { grid-column:1/-1; }
-        .grafico-card canvas { max-height:260px; }
-        .tabela-scroll { overflow-x:auto; border-radius:10px; border:1px solid #f0f0f0; }
-        table { width:100%; border-collapse:collapse; font-size:11px; min-width:500px; }
-        th { background:#f8f8f8; padding:9px 6px; text-align:center; font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:#888; border-bottom:2px solid #e8e8e8; white-space:nowrap; }
-        td { padding:7px 6px; text-align:center; border-bottom:1px solid #f5f5f5; font-size:11px; }
-        td input, td select { padding:5px 7px; border:2px solid #e0e0e0; border-radius:6px; text-align:center; font-size:11px; }
-        td input:focus, td select:focus { outline:none; border-color:var(--rosa); }
-        .positivo { color:var(--verde); font-weight:600; } .negativo { color:var(--vermelho); font-weight:600; }
-        .tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:9px; font-weight:700; }
-        .tag-verde { background:#e8f5e9; color:var(--verde); } .tag-vermelho { background:#ffebee; color:var(--vermelho); } .tag-amarelo { background:#fff8e1; color:#f57f17; }
-        .linha-total { font-weight:700; background:#fafafa; }
-        .btn { padding:9px 18px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:none; transition:.2s; display:inline-flex; align-items:center; gap:5px; }
-        .btn-rosa { background:var(--rosa); color:#fff; } .btn-rosa:hover { background:var(--rosa-escuro); }
-        .btn-outline { background:#fff; color:var(--rosa); border:2px solid var(--rosa); }
-        .btn-sm { padding:5px 10px; font-size:10px; border-radius:6px; }
-        .btn-vermelho { background:#e53935; color:#fff; } .btn-dourado { background:var(--dourado); color:#333; }
-        .btn-verde { background:var(--verde); color:#fff; }
-        .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px; }
-        .form-group { flex:1; min-width:130px; }
-        .form-group label { display:block; font-size:10px; font-weight:700; color:#888; margin-bottom:3px; text-transform:uppercase; }
-        .form-group input, .form-group select, .form-group textarea { width:100%; padding:9px 10px; border:2px solid #e0e0e0; border-radius:8px; font-size:13px; font-family:inherit; }
-        .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--rosa); }
-        .alerta { padding:10px 14px; border-radius:8px; margin:8px 0; font-size:12px; font-weight:500; }
-        .alerta-sucesso { background:#e8f5e9; color:var(--verde); } .alerta-erro { background:#ffebee; color:var(--vermelho); }
-        .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px; }
-        .modal-overlay.ativo { display:flex; }
-        .modal { background:#fff; border-radius:16px; padding:24px; width:100%; max-width:520px; max-height:85vh; overflow-y:auto; }
-        .modal h3 { margin-bottom:14px; color:#444; }
-        .modal-botoes { display:flex; gap:8px; margin-top:14px; justify-content:flex-end; }
-        .vendedora-selector { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:15px; }
-        .vend-btn { padding:7px 14px; border:2px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:.2s; }
-        .vend-btn.ativo { background:var(--rosa); color:#fff; border-color:var(--rosa); }
-        .semana-card { border:2px solid #e0e0e0; border-radius:10px; padding:12px; text-align:center; min-width:130px; }
-        .semana-card .semana-num { font-size:10px; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:1px; }
-        .semana-card .semana-realizado { font-size:18px; font-weight:700; }
-        .semana-card .semana-meta { font-size:11px; color:#888; }
-        .semana-card .semana-falta { font-size:10px; font-weight:600; }
-        .loading { text-align:center; padding:40px; color:#999; }
-        @media(max-width:900px) { .sidebar { width:55px; } .sidebar-logo h2, .sidebar-logo .ano, .sidebar-nav a span, .nav-label { display:none; } .sidebar-nav a { justify-content:center; padding:14px; } .main-content { margin-left:55px; width:calc(100%-55px); padding:15px; } .graficos-grid { grid-template-columns:1fr; } }
-        @media(max-width:500px) { .cards-grid { grid-template-columns:1fr; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--cinza-fundo);
+            color: var(--texto);
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #1a1a2e;
+            color: #fff;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .sidebar-logo {
+            padding: 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-logo h2 {
+            font-size: 19px;
+            color: var(--rosa);
+        }
+        .sidebar-logo .ano {
+            font-size: 10px;
+            color: var(--dourado);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 20px;
+            color: #bbb;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: .2s;
+        }
+        .sidebar-nav a:hover,
+        .sidebar-nav a.ativo {
+            background: rgba(233, 30, 99, 0.15);
+            color: #fff;
+            border-left-color: var(--rosa);
+        }
+        .nav-label {
+            padding: 15px 20px 5px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            font-weight: 700;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 20px 25px;
+        }
+        .page-header {
+            background: var(--branco);
+            padding: 16px 22px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .page-header h1 {
+            font-size: 21px;
+            font-weight: 700;
+            color: #444;
+        }
+        .mes-selector {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .mes-btn {
+            padding: 6px 11px;
+            border: 2px solid #ddd;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: .2s;
+        }
+        .mes-btn.ativo {
+            background: var(--rosa);
+            color: #fff;
+            border-color: var(--rosa);
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .card-meta {
+            background: var(--branco);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            border-top: 5px solid #ddd;
+        }
+        .card-meta .card-titulo {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .card-meta .card-valor {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+        }
+        .card-meta .card-sub {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+        .progresso-bar {
+            height: 6px;
+            background: #eee;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progresso-preenchido {
+            height: 100%;
+            border-radius: 10px;
+            transition: width .5s;
+        }
+        .bloco {
+            background: var(--branco);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+        .bloco h3 {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .bloco h4 {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .graficos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .grafico-card {
+            background: var(--branco);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+        .grafico-card.full {
+            grid-column: 1/-1;
+        }
+        .grafico-card canvas {
+            max-height: 260px;
+        }
+        .tabela-scroll {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #f0f0f0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            min-width: 500px;
+        }
+        th {
+            background: #f8f8f8;
+            padding: 9px 6px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #888;
+            border-bottom: 2px solid #e8e8e8;
+            white-space: nowrap;
+        }
+        td {
+            padding: 7px 6px;
+            text-align: center;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 11px;
+        }
+        td input,
+        td select {
+            padding: 5px 7px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 11px;
+        }
+        td input:focus,
+        td select:focus {
+            outline: none;
+            border-color: var(--rosa);
+        }
+        .positivo {
+            color: var(--verde);
+            font-weight: 600;
+        }
+        .negativo {
+            color: var(--vermelho);
+            font-weight: 600;
+        }
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 9px;
+            font-weight: 700;
+        }
+        .tag-verde {
+            background: #e8f5e9;
+            color: var(--verde);
+        }
+        .tag-vermelho {
+            background: #ffebee;
+            color: var(--vermelho);
+        }
+        .tag-amarelo {
+            background: #fff8e1;
+            color: #f57f17;
+        }
+        .linha-total {
+            font-weight: 700;
+            background: #fafafa;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-rosa {
+            background: var(--rosa);
+            color: #fff;
+        }
+        .btn-rosa:hover {
+            background: var(--rosa-escuro);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--rosa);
+            border: 2px solid var(--rosa);
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 10px;
+            border-radius: 6px;
+        }
+        .btn-vermelho {
+            background: #e53935;
+            color: #fff;
+        }
+        .btn-dourado {
+            background: var(--dourado);
+            color: #333;
+        }
+        .btn-verde {
+            background: var(--verde);
+            color: #fff;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 130px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: #888;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--rosa);
+        }
+        .alerta {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .alerta-sucesso {
+            background: #e8f5e9;
+            color: var(--verde);
+        }
+        .alerta-erro {
+            background: #ffebee;
+            color: var(--vermelho);
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.ativo {
+            display: flex;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            margin-bottom: 14px;
+            color: #444;
+        }
+        .modal-botoes {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            justify-content: flex-end;
+        }
+        .vendedora-selector {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .vend-btn {
+            padding: 7px 14px;
+            border: 2px solid #ddd;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: .2s;
+        }
+        .vend-btn.ativo {
+            background: var(--rosa);
+            color: #fff;
+            border-color: var(--rosa);
+        }
+        .semana-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            min-width: 130px;
+        }
+        .semana-card .semana-num {
+            font-size: 10px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .semana-card .semana-realizado {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .semana-card .semana-meta {
+            font-size: 11px;
+            color: #888;
+        }
+        .semana-card .semana-falta {
+            font-size: 10px;
+            font-weight: 600;
+        }
+        @media(max-width:900px) {
+            .sidebar {
+                width: 55px;
+            }
+            .sidebar-logo h2,
+            .sidebar-logo .ano,
+            .sidebar-nav a span,
+            .nav-label {
+                display: none;
+            }
+            .sidebar-nav a {
+                justify-content: center;
+                padding: 14px;
+            }
+            .main-content {
+                margin-left: 55px;
+                width: calc(100% - 55px);
+                padding: 15px;
+            }
+            .graficos-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media(max-width:500px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
 
-<aside class="sidebar">
-    <div class="sidebar-logo"><h2>Lilica e Tigor</h2><div class="ano">Metas 2026</div></div>
-    <nav class="sidebar-nav">
-        <div class="nav-label">Principal</div>
-        <a class="ativo" onclick="nav('dashboard',this)"><span>📊</span> Dashboard</a>
-        <a onclick="nav('lancamentos',this)"><span>📝</span> Lançamentos</a>
-        <a onclick="nav('vendedoras',this)"><span>👩‍💼</span> Vendedoras</a>
-        <div class="nav-label">Painel Individual</div>
-        <a onclick="nav('painel-vend',this)"><span>📋</span> Meu Painel</a>
-        <div class="nav-label">Configurações</div>
-        <a onclick="nav('pa',this)"><span>📦</span> PA & Condicional</a>
-        <a onclick="nav('ly',this)"><span>📅</span> Ajustar LY</a>
-        <a onclick="nav('config',this)"><span>⚙️</span> Configurações</a>
-    </nav>
-</aside>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Lilica e Tigor</h2>
+            <div class="ano">Metas 2026</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Principal</div>
+            <a class="ativo" onclick="nav('dashboard',this)"><span>📊</span> Dashboard</a>
+            <a onclick="nav('lancamentos',this)"><span>📝</span> Lançamentos</a>
+            <a onclick="nav('vendedoras',this)"><span>👩‍💼</span> Vendedoras</a>
+            <div class="nav-label">Painel Individual</div>
+            <a onclick="nav('painel-vend',this)"><span>📋</span> Meu Painel</a>
+            <div class="nav-label">Configurações</div>
+            <a onclick="nav('pa',this)"><span>📦</span> PA & Condicional</a>
+            <a onclick="nav('ly',this)"><span>📅</span> Ajustar LY</a>
+            <a onclick="nav('config',this)"><span>⚙️</span> Configurações</a>
+        </nav>
+    </aside>
 
-<main class="main-content" id="main-content">
-    <div class="loading">⏳ Conectando ao Supabase...</div>
-</main>
+    <main class="main-content" id="main-content"></main>
 
-<div class="modal-overlay" id="modal-lanc">
-    <div class="modal">
-        <h3>Lançar Venda</h3>
-        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="md-data"></div><div class="form-group"><label>Vendedora</label><select id="md-vend"></select></div></div>
-        <div class="form-row"><div class="form-group"><label>Valor (R$)</label><input type="number" id="md-valor" step="0.01" min="0"></div><div class="form-group"><label>Peças Vendidas</label><input type="number" id="md-pecas" min="0"></div></div>
-        <div class="form-row"><div class="form-group"><label>Atendimentos</label><input type="number" id="md-atend" min="0"></div><div class="form-group"><label>Condicional (Qtd)</label><input type="number" id="md-cqtd" min="0"></div></div>
-        <div class="form-row"><div class="form-group"><label>Condicional (R$)</label><input type="number" id="md-cval" step="0.01" min="0"></div><div class="form-group"><label>Obs</label><input type="text" id="md-obs"></div></div>
-        <div class="modal-botoes"><button class="btn btn-outline btn-sm" onclick="fechaModal()">Cancelar</button><button class="btn btn-rosa btn-sm" onclick="salvaModal()">Salvar</button></div>
+    <div class="modal-overlay" id="modal-lanc">
+        <div class="modal">
+            <h3>Lançar Venda</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Data</label><input type="date" id="md-data"></div>
+                <div class="form-group"><label>Vendedora</label><select id="md-vend"></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Valor (R$)</label><input type="number" id="md-valor" step="0.01" min="0"></div>
+                <div class="form-group"><label>Peças Vendidas</label><input type="number" id="md-pecas" min="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Atendimentos</label><input type="number" id="md-atend" min="0"></div>
+                <div class="form-group"><label>Condicional (Qtd)</label><input type="number" id="md-cqtd" min="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Condicional (R$)</label><input type="number" id="md-cval" step="0.01" min="0"></div>
+                <div class="form-group"><label>Obs</label><input type="text" id="md-obs"></div>
+            </div>
+            <div class="modal-botoes">
+                <button class="btn btn-outline btn-sm" onclick="fechaModal()">Cancelar</button>
+                <button class="btn btn-rosa btn-sm" onclick="salvaModal()">Salvar</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-// ==================== SUPABASE CLIENT ====================
-const SUPABASE_URL = window.ENV?.SUPABASE_URL || 'https://seu-projeto.supabase.co';
-const SUPABASE_ANON_KEY = window.ENV?.SUPABASE_ANON_KEY || 'sua-chave-anon';
+    <script>
+        const DU = 22,
+            MN = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro',
+                'Novembro', 'Dezembro'
+            ];
+        const MNN = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+        let ML = { min: 100000, max: 115000, big: 138000 };
+        const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        let V = JSON.parse(localStorage.getItem('v')) || [{ nome: "Ana", meta: 40000 }, { nome: "Beatriz",
+        meta: 40000 }, { nome: "Carla", meta: 40000 }];
+        let L = JSON.parse(localStorage.getItem('l')) || [];
+        let LY_DIA = JSON.parse(localStorage.getItem('ly_dia')) || {};
+        let CD = JSON.parse(localStorage.getItem('cd')) || { perc: 0, bonus: 0, obs: '' };
+        let METAS_MENSAIS = JSON.parse(localStorage.getItem('metas_mensais')) || {};
+        let METAS_SEMANAIS = JSON.parse(localStorage.getItem('metas_semanais')) || {};
+        let MS = new Date().getMonth();
+        let MS_LY = new Date().getMonth();
+        let VEND_SEL = 0;
+        let MS_CONFIG = new Date().getMonth();
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        function sv() { localStorage.setItem('v', JSON.stringify(V));
+            localStorage.setItem('l', JSON.stringify(L));
+            localStorage.setItem('ly_dia', JSON.stringify(LY_DIA));
+            localStorage.setItem('cd', JSON.stringify(CD));
+            localStorage.setItem('metas_mensais', JSON.stringify(METAS_MENSAIS));
+            localStorage.setItem('metas_semanais', JSON.stringify(METAS_SEMANAIS));
+            localStorage.setItem('metas_loja', JSON.stringify(ML)); }
 
-// ==================== CONSTANTES ====================
-const DU=22, MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const MNN=['01','02','03','04','05','06','07','08','09','10','11','12'];
-let ML={min:100000,max:115000,big:138000};
-const DIAS_SEMANA=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+        function fm(v) { return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
-// ==================== ESTADO GLOBAL ====================
-let V=[], L=[], LY_DIA={}, CD={perc:0,bonus:0,obs:''}, METAS_MENSAIS={}, METAS_SEMANAIS={};
-let MS=new Date().getMonth(), MS_LY=new Date().getMonth(), VEND_SEL=0, MS_CONFIG=new Date().getMonth();
+        function getMetaVendedoraMes(nome, mes) { let chave = MNN[mes]; if (METAS_MENSAIS[nome] && METAS_MENSAIS[nome][
+                chave
+            ]) return METAS_MENSAIS[nome][chave]; let v = V.find(x => x.nome === nome); return v ? v.meta : 0; }
 
-// ==================== FUNÇÕES SUPABASE ====================
-async function carregarDados(){
-    try{
-        // Carregar vendedoras
-        let {data:vend}=await supabase.from('vendedoras').select('*');
-        if(vend && vend.length>0) V=vend.map(v=>({nome:v.nome,meta:v.meta}));
-        else V=[{nome:"Ana",meta:40000},{nome:"Beatriz",meta:40000},{nome:"Carla",meta:40000}];
+        function getMetaSemanal(nome, mes, semana) {
+            let chave = `${MNN[mes]}_S${semana}`;
+            if (METAS_SEMANAIS[nome] && METAS_SEMANAIS[nome][chave]) return METAS_SEMANAIS[nome][chave];
+            // Fallback: meta mensal / número de semanas do mês
+            let numSemanas = sem(mes, 2026).length;
+            return numSemanas > 0 ? getMetaVendedoraMes(nome, mes) / numSemanas : 0;
+        }
 
-        // Carregar lançamentos
-        let {data:lanc}=await supabase.from('lancamentos').select('*');
-        if(lanc) L=lanc.map(l=>({id:l.id,data:l.data,vend:l.vendedora,real:l.realizado,pecas:l.pecas||0,atend:l.atendimentos||0,cqtd:l.cond_qtd||0,cval:l.cond_valor||0,obs:l.obs||''}));
+        function md(nome, mes) { return getMetaVendedoraMes(nome, mes) / DU; }
 
-        // Carregar LY
-        let {data:ly}=await supabase.from('ly_diario').select('*');
-        if(ly){ LY_DIA={}; ly.forEach(l=>{LY_DIA[l.data]=l.valor;}); }
+        function du(m, a) { let r = [],
+                td = new Date(a, m + 1, 0).getDate(); for (let d = 1; d <= td; d++) { let dt = new Date(a, m, d),
+                    ds = dt.getDay(); if (ds !== 0 && ds !== 6) r.push({ dia: d, data: `${a}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,
+                    ds }); } return r; }
 
-        // Carregar condicional
-        let {data:cd}=await supabase.from('condicional').select('*').limit(1);
-        if(cd && cd.length>0) CD={perc:cd[0].perc_atingido||0,bonus:cd[0].bonus||0,obs:cd[0].obs||''};
+        function sem(m, a) { let d = du(m, a),
+                r = [],
+                t = [];
+            d.forEach((x, i) => { t.push(x); if (x.ds === 5 || i === d.length - 1) { if (t.length) r.push([...t]);
+                    t = []; } }); if (t.length) r.push(t); return r; }
 
-        // Carregar metas mensais
-        let {data:mm}=await supabase.from('metas_mensais').select('*');
-        if(mm){ METAS_MENSAIS={}; mm.forEach(m=>{if(!METAS_MENSAIS[m.vendedora])METAS_MENSAIS[m.vendedora]={};METAS_MENSAIS[m.vendedora][m.mes]=m.valor;}); }
+        function grd(dt) { return L.filter(l => l.data === dt).reduce((s, l) => s + (l.real || 0), 0); }
 
-        // Carregar metas semanais
-        let {data:ms}=await supabase.from('metas_semanais').select('*');
-        if(ms){ METAS_SEMANAIS={}; ms.forEach(m=>{if(!METAS_SEMANAIS[m.vendedora])METAS_SEMANAIS[m.vendedora]={};METAS_SEMANAIS[m.vendedora][m.chave]=m.valor;}); }
+        function gpd(dt) { return L.filter(l => l.data === dt).reduce((s, l) => s + (l.pecas || 0), 0); }
 
-        // Carregar metas loja
-        let {data:ml}=await supabase.from('metas_loja').select('*').limit(1);
-        if(ml && ml.length>0) ML={min:ml[0].minima,max:ml[0].maxima,big:ml[0].big};
+        function gad(dt) { return L.filter(l => l.data === dt).reduce((s, l) => s + (l.atend || 0), 0); }
 
-    }catch(e){console.error('Erro ao carregar:',e);}
-    rd();
-}
+        function gcd(dt) { return L.filter(l => l.data === dt).reduce((s, l) => s + (l.cqtd || 0), 0); }
 
-async function salvarVendedoras(){await supabase.from('vendedoras').delete().neq('id',0);if(V.length>0)await supabase.from('vendedoras').insert(V.map(v=>({nome:v.nome,meta:v.meta})));}
-async function salvarLancamentos(){await supabase.from('lancamentos').delete().neq('id',0);if(L.length>0){let batch=L.map(l=>({data:l.data,vendedora:l.vend,realizado:l.real,pecas:l.pecas,atendimentos:l.atend,cond_qtd:l.cqtd,cond_valor:l.cval,obs:l.obs}));await supabase.from('lancamentos').insert(batch);}}
-async function salvarLY(){await supabase.from('ly_diario').delete().neq('id',0);let batch=Object.entries(LY_DIA).map(([k,v])=>({data:k,valor:v}));if(batch.length>0)await supabase.from('ly_diario').insert(batch);}
-async function salvarCD(){await supabase.from('condicional').delete().neq('id',0);await supabase.from('condicional').insert({perc_atingido:CD.perc,bonus:CD.bonus,obs:CD.obs});}
-async function salvarMM(){await supabase.from('metas_mensais').delete().neq('id',0);let batch=[];Object.entries(METAS_MENSAIS).forEach(([v,meses])=>{Object.entries(meses).forEach(([m,val])=>{batch.push({vendedora:v,mes:m,valor:val});});});if(batch.length>0)await supabase.from('metas_mensais').insert(batch);}
-async function salvarMS(){await supabase.from('metas_semanais').delete().neq('id',0);let batch=[];Object.entries(METAS_SEMANAIS).forEach(([v,sems])=>{Object.entries(sems).forEach(([c,val])=>{batch.push({vendedora:v,chave:c,valor:val});});});if(batch.length>0)await supabase.from('metas_semanais').insert(batch);}
-async function salvarML(){await supabase.from('metas_loja').delete().neq('id',0);await supabase.from('metas_loja').insert({minima:ML.min,maxima:ML.max,big:ML.big});}
-async function salvarTudo(){await salvarVendedoras();await salvarLancamentos();await salvarLY();await salvarCD();await salvarMM();await salvarMS();await salvarML();}
+        function gcvd(dt) { return L.filter(l => l.data === dt).reduce((s, l) => s + (l.cval || 0), 0); }
 
-// ==================== UTILITÁRIOS ====================
-function fm(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
-function getMetaVendedoraMes(nome,mes){let chave=MNN[mes];if(METAS_MENSAIS[nome]&&METAS_MENSAIS[nome][chave])return METAS_MENSAIS[nome][chave];let v=V.find(x=>x.nome===nome);return v?v.meta:0;}
-function getMetaSemanal(nome,mes,semana){let chave=`${MNN[mes]}_S${semana}`;if(METAS_SEMANAIS[nome]&&METAS_SEMANAIS[nome][chave])return METAS_SEMANAIS[nome][chave];let numSemanas=sem(mes,2026).length;return numSemanas>0?getMetaVendedoraMes(nome,mes)/numSemanas:0;}
-function du(m,a){let r=[],td=new Date(a,m+1,0).getDate();for(let d=1;d<=td;d++){let dt=new Date(a,m,d),ds=dt.getDay();if(ds!==0&&ds!==6)r.push({dia:d,data:`${a}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,ds});}return r;}
-function sem(m,a){let d=du(m,a),r=[],t=[];d.forEach((x,i)=>{t.push(x);if(x.ds===5||i===d.length-1){if(t.length)r.push([...t]);t=[];}});if(t.length)r.push(t);return r;}
-function grd(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.real||0),0);}
-function gpd(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.pecas||0),0);}
-function gad(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.atend||0),0);}
-function gcd(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.cqtd||0),0);}
-function gcvd(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.cval||0),0);}
-function grm(m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0);}
-function grvm(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0);}
-function grvs(n,m,a,semana){let semanas=sem(m,a);if(semana<1||semana>semanas.length)return 0;return semanas[semana-1].reduce((s,d)=>s+(L.filter(l=>l.vend===n&&l.data===d.data).reduce((ss,l)=>ss+(l.real||0),0)),0);}
-function gpm(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.pecas||0),0);}
-function gam(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.atend||0),0);}
-function gcmq(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.cqtd||0),0);}
-function gcmv(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.cval||0),0);}
-function glyDia(dt){return LY_DIA[dt]||0;}
-function glyMes(m,a){let dias=du(m,a);return dias.reduce((s,d)=>s+glyDia(d.data),0);}
+        function grm(m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.data.startsWith(`${a}-${ms}`))
+                .reduce((s, l) => s + (l.real || 0), 0); }
 
-function nav(p,el){
-    document.querySelectorAll('.sidebar-nav a').forEach(a=>a.classList.remove('ativo'));
-    if(el)el.classList.add('ativo');
-    let c=document.getElementById('main-content');
-    c.innerHTML='<p class="loading">Carregando...</p>';
-    setTimeout(()=>{if(p==='dashboard')rd();else if(p==='lancamentos')rl();else if(p==='vendedoras')rv();else if(p==='painel-vend')rpv();else if(p==='pa')rpa();else if(p==='ly')rly();else if(p==='config')rconfig();},50);
-}
+        function grvm(n, m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.vend === n && l.data
+                .startsWith(`${a}-${ms}`)).reduce((s, l) => s + (l.real || 0), 0); }
 
-function rd(){
-    let rm=grm(MS,2026),pmin=Math.min((rm/ML.min)*100,100),pmax=Math.min((rm/ML.max)*100,100),pbig=Math.min((rm/ML.big)*100,100),lyv=glyMes(MS,2026),vly=lyv>0?((rm-lyv)/lyv)*100:0;
-    let h=`<div class="page-header"><h1>Dashboard • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rd();">${m.substring(0,3)}</button>`).join('')}</div></div>
+        function grvs(n, m, a, semana) {
+            let semanas = sem(m, a);
+            if (semana < 1 || semana > semanas.length) return 0;
+            return semanas[semana - 1].reduce((s, d) => s + (L.filter(l => l.vend === n && l.data === d.data).reduce((ss,
+                l) => ss + (l.real || 0), 0)), 0);
+        }
+
+        function gpm(n, m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.vend === n && l.data
+                .startsWith(`${a}-${ms}`)).reduce((s, l) => s + (l.pecas || 0), 0); }
+
+        function gam(n, m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.vend === n && l.data
+                .startsWith(`${a}-${ms}`)).reduce((s, l) => s + (l.atend || 0), 0); }
+
+        function gcmq(n, m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.vend === n && l.data
+                .startsWith(`${a}-${ms}`)).reduce((s, l) => s + (l.cqtd || 0), 0); }
+
+        function gcmv(n, m, a) { let ms = String(m + 1).padStart(2, '0'); return L.filter(l => l.vend === n && l.data
+                .startsWith(`${a}-${ms}`)).reduce((s, l) => s + (l.cval || 0), 0); }
+
+        function glyDia(dt) { return LY_DIA[dt] || 0; }
+
+        function glyMes(m, a) { let dias = du(m, a); return dias.reduce((s, d) => s + glyDia(d.data), 0); }
+
+        function carregarMetasLoja() { let sl = JSON.parse(localStorage.getItem('metas_loja')); if (sl) { ML.min = sl.min;
+                ML.max = sl.max;
+                ML.big = sl.big; } }
+        carregarMetasLoja();
+
+        function nav(p, el) {
+            document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('ativo'));
+            if (el) el.classList.add('ativo');
+            let c = document.getElementById('main-content');
+            c.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">Carregando...</p>';
+            setTimeout(() => { if (p === 'dashboard') rd(); else if (p === 'lancamentos') rl(); else if (p ===
+                    'vendedoras') rv(); else if (p === 'painel-vend') rpv(); else if (p === 'pa') rpa(); else if (p ===
+                    'ly') rly(); else if (p === 'config') rconfig(); }, 80);
+        }
+
+        function rd() {
+            let rm = grm(MS, 2026),
+                pmin = Math.min((rm / ML.min) * 100, 100),
+                pmax = Math.min((rm / ML.max) * 100, 100),
+                pbig = Math.min((rm / ML.big) * 100, 100),
+                lyv = glyMes(MS, 2026),
+                vly = lyv > 0 ? ((rm - lyv) / lyv) * 100 : 0;
+            let h = `<div class="page-header"><h1>Dashboard • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rd();">${m.substring(0,3)}</button>`).join('')}</div></div>
     <div class="cards-grid">
     <div class="card-meta" style="border-top-color:#ff9800;"><div class="card-titulo">Meta Mínima</div><div class="card-valor">${fm(ML.min)}</div><div class="card-sub">${fm(rm)} (${pmin.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmin}%;background:#ff9800;"></div></div></div>
     <div class="card-meta" style="border-top-color:#2196F3;"><div class="card-titulo">Meta Máxima</div><div class="card-valor">${fm(ML.max)}</div><div class="card-sub">${fm(rm)} (${pmax.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmax}%;background:#2196F3;"></div></div></div>
@@ -221,39 +654,125 @@ function rd(){
     <div class="card-meta" style="border-top-color:#4CAF50;"><div class="card-titulo">LY 2025</div><div class="card-valor">${fm(lyv)}</div><div class="card-sub" style="color:${vly>=0?'green':'red'}">${vly>=0?'+':''}${vly.toFixed(1)}%</div></div>
     </div>
     <div class="graficos-grid"><div class="grafico-card"><h4>Realizado Diário vs Meta</h4><canvas id="g1"></canvas></div><div class="grafico-card"><h4>Por Vendedora</h4><canvas id="g2"></canvas></div><div class="grafico-card full"><h4>Semanas</h4><canvas id="g3"></canvas></div></div>`;
-    document.getElementById('main-content').innerHTML=h;
-    setTimeout(()=>{rg1();rg2();rg3();},200);
-}
-function rg1(){let c=document.getElementById('g1');if(!c)return;let d=du(MS,2026),mt=V.reduce((s,v)=>s+getMetaVendedoraMes(v.nome,MS)/DU,0);new Chart(c,{type:'bar',data:{labels:d.map(x=>x.dia),datasets:[{label:'Realizado',data:d.map(x=>grd(x.data)),backgroundColor:'#E91E63',borderRadius:4},{label:'Meta',data:d.map(()=>mt),type:'line',borderColor:'#F5C518',borderWidth:2,pointRadius:2,fill:false},{label:'LY 2025',data:d.map(x=>glyDia(x.data)),type:'line',borderColor:'#4CAF50',borderWidth:2,pointRadius:2,fill:false,borderDash:[5,5]}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});}
-function rg2(){let c=document.getElementById('g2');if(!c)return;new Chart(c,{type:'bar',data:{labels:V.map(v=>v.nome),datasets:[{label:'Realizado',data:V.map(v=>grvm(v.nome,MS,2026)),backgroundColor:'#E91E63',borderRadius:4},{label:'Meta',data:V.map(v=>getMetaVendedoraMes(v.nome,MS)),backgroundColor:'#ddd',borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});}
-function rg3(){let c=document.getElementById('g3');if(!c)return;let s=sem(MS,2026),mt=V.reduce((s,v)=>s+getMetaVendedoraMes(v.nome,MS)/DU,0);new Chart(c,{type:'bar',data:{labels:s.map((_,i)=>'Sem '+(i+1)),datasets:[{label:'Realizado',data:s.map(sem=>sem.reduce((s,d)=>s+grd(d.data),0)),backgroundColor:'#E91E63',borderRadius:6},{label:'Meta',data:s.map(sem=>sem.length*mt),backgroundColor:'#F5C518',borderRadius:6}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});}
+            document.getElementById('main-content').innerHTML = h;
+            setTimeout(() => { rg1();
+                rg2();
+                rg3(); }, 200);
+        }
 
-function rl(){
-    let d=du(MS,2026),s=sem(MS,2026),mt=V.reduce((s,v)=>s+getMetaVendedoraMes(v.nome,MS)/DU,0),tr=0,tp=0,ta=0,tcq=0,tcv=0;
-    let h=`<div class="page-header"><h1>Controle Diário • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rl();">${m.substring(0,3)}</button>`).join('')}</div></div>
+        function rg1() { let c = document.getElementById('g1'); if (!c) return; let d = du(MS, 2026),
+                mt = V.reduce((s, v) => s + getMetaVendedoraMes(v.nome, MS) / DU, 0); new Chart(c, { type: 'bar',
+                data: { labels: d.map(x => x.dia), datasets: [{ label: 'Realizado', data: d.map(x => grd(x.data)),
+                        backgroundColor: '#E91E63', borderRadius: 4 }, { label: 'Meta', data: d.map(() => mt),
+                        type: 'line', borderColor: '#F5C518', borderWidth: 2, pointRadius: 2, fill: false }, { label: 'LY 2025',
+                        data: d.map(x => glyDia(x.data)), type: 'line', borderColor: '#4CAF50', borderWidth: 2,
+                        pointRadius: 2, fill: false, borderDash: [5, 5] }] }, options: { responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { ticks: { callback: v => fm(v) } } } } }); }
+
+        function rg2() { let c = document.getElementById('g2'); if (!c) return; new Chart(c, { type: 'bar', data: { labels: V
+                    .map(v => v.nome), datasets: [{ label: 'Realizado', data: V.map(v => grvm(v.nome, MS, 2026)),
+                        backgroundColor: '#E91E63', borderRadius: 4 }, { label: 'Meta', data: V.map(v =>
+                        getMetaVendedoraMes(v.nome, MS)), backgroundColor: '#ddd', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { ticks: { callback: v => fm(v) } } } } }); }
+
+        function rg3() { let c = document.getElementById('g3'); if (!c) return; let s = sem(MS, 2026),
+                mt = V.reduce((s, v) => s + getMetaVendedoraMes(v.nome, MS) / DU, 0); new Chart(c, { type: 'bar',
+                data: { labels: s.map((_, i) => 'Sem ' + (i + 1)), datasets: [{ label: 'Realizado', data: s.map(sem =>
+                        sem.reduce((s, d) => s + grd(d.data), 0)), backgroundColor: '#E91E63', borderRadius: 6 },
+                    { label: 'Meta', data: s.map(sem => sem.length * mt), backgroundColor: '#F5C518',
+                        borderRadius: 6 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { ticks: { callback: v => fm(v) } } } } }); }
+
+        function rl() {
+            let d = du(MS, 2026),
+                s = sem(MS, 2026),
+                mt = V.reduce((s, v) => s + getMetaVendedoraMes(v.nome, MS) / DU, 0),
+                tr = 0,
+                tp = 0,
+                ta = 0,
+                tcq = 0,
+                tcv = 0;
+            let h = `<div class="page-header"><h1>Controle Diário • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rl();">${m.substring(0,3)}</button>`).join('')}</div></div>
     <div class="bloco"><h3>Lançamentos Diários</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Peças</th><th>Atend</th><th>Ticket</th><th>Cond. Qtd</th><th>Cond. R$</th><th>LY</th><th>vsLY</th><th>Ação</th></tr></thead><tbody>`;
-    d.forEach(x=>{let r=grd(x.data),p=gpd(x.data),a=gad(x.data),cq=gcd(x.data),cv=gcvd(x.data),gap=r-mt,perc=mt>0?(r/mt)*100:0,tk=a>0?r/a:0,lyDia=glyDia(x.data),vs=lyDia>0?((r-lyDia)/lyDia)*100:0;tr+=r;tp+=p;ta+=a;tcq+=cq;tcv+=cv;
-    h+=`<tr><td><b>${x.dia}</b></td><td>${fm(mt)}</td><td>${fm(r)}</td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc.toFixed(0)}%</span></td><td>${p}</td><td>${a}</td><td>${fm(tk)}</td><td>${cq}</td><td>${fm(cv)}</td><td>${fm(lyDia)}</td><td class="${vs>=0?'positivo':'negativo'}">${vs.toFixed(1)}%</td><td><button class="btn btn-rosa btn-sm" onclick="abreModal('${x.data}')">✏️</button></td></tr>`;});
-    let gapt=tr-(mt*d.length),pct=mt>0?(tr/(mt*d.length))*100:0,tkt=ta>0?tr/ta:0;
-    h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mt*d.length)}</td><td>${fm(tr)}</td><td class="${gapt>=0?'positivo':'negativo'}">${fm(gapt)}</td><td>${pct.toFixed(1)}%</td><td>${tp}</td><td>${ta}</td><td>${fm(tkt)}</td><td>${tcq}</td><td>${fm(tcv)}</td><td colspan="3"></td></tr></tbody></table></div></div>`;
-    h+=`<div class="bloco"><h3>Semanas</h3><div class="tabela-scroll"><table><thead><tr><th>Semana</th><th>Dias</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th></tr></thead><tbody>`;
-    s.forEach((sm,i)=>{let ms=sm.length*mt,rs=sm.reduce((s,x)=>s+grd(x.data),0),gs=rs-ms,ps=ms>0?(rs/ms)*100:0;h+=`<tr><td><b>Sem ${i+1}</b></td><td>${sm[0].dia}-${sm[sm.length-1].dia}</td><td>${fm(ms)}</td><td>${fm(rs)}</td><td class="${gs>=0?'positivo':'negativo'}">${fm(gs)}</td><td>${ps.toFixed(1)}%</td></tr>`;});
-    h+=`</tbody></table></div></div>`;document.getElementById('main-content').innerHTML=h;
-}
+            d.forEach(x => { let r = grd(x.data),
+                    p = gpd(x.data),
+                    a = gad(x.data),
+                    cq = gcd(x.data),
+                    cv = gcvd(x.data),
+                    gap = r - mt,
+                    perc = mt > 0 ? (r / mt) * 100 : 0,
+                    tk = a > 0 ? r / a : 0,
+                    lyDia = glyDia(x.data),
+                    vs = lyDia > 0 ? ((r - lyDia) / lyDia) * 100 : 0;
+                tr += r;
+                tp += p;
+                ta += a;
+                tcq += cq;
+                tcv += cv;
+                h +=
+                    `<tr><td><b>${x.dia}</b></td><td>${fm(mt)}</td><td>${fm(r)}</td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc.toFixed(0)}%</span></td><td>${p}</td><td>${a}</td><td>${fm(tk)}</td><td>${cq}</td><td>${fm(cv)}</td><td>${fm(lyDia)}</td><td class="${vs>=0?'positivo':'negativo'}">${vs.toFixed(1)}%</td><td><button class="btn btn-rosa btn-sm" onclick="abreModal('${x.data}')">✏️</button></td></tr>`;
+            });
+            let gapt = tr - (mt * d.length),
+                pct = mt > 0 ? (tr / (mt * d.length)) * 100 : 0,
+                tkt = ta > 0 ? tr / ta : 0;
+            h +=
+                `<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mt*d.length)}</td><td>${fm(tr)}</td><td class="${gapt>=0?'positivo':'negativo'}">${fm(gapt)}</td><td>${pct.toFixed(1)}%</td><td>${tp}</td><td>${ta}</td><td>${fm(tkt)}</td><td>${tcq}</td><td>${fm(tcv)}</td><td colspan="3"></td></tr></tbody></table></div></div>`;
+            h +=
+                `<div class="bloco"><h3>Semanas</h3><div class="tabela-scroll"><table><thead><tr><th>Semana</th><th>Dias</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th></tr></thead><tbody>`;
+            s.forEach((sm, i) => { let ms = sm.length * mt,
+                    rs = sm.reduce((s, x) => s + grd(x.data), 0),
+                    gs = rs - ms,
+                    ps = ms > 0 ? (rs / ms) * 100 : 0;
+                h +=
+                    `<tr><td><b>Sem ${i+1}</b></td><td>${sm[0].dia}-${sm[sm.length-1].dia}</td><td>${fm(ms)}</td><td>${fm(rs)}</td><td class="${gs>=0?'positivo':'negativo'}">${fm(gs)}</td><td>${ps.toFixed(1)}%</td></tr>`; });
+            h += `</tbody></table></div></div>`;
+            document.getElementById('main-content').innerHTML = h;
+        }
 
-function rv(){
-    let d=du(MS,2026);let h=`<div class="page-header"><h1>Painel Vendedoras • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rv();">${m.substring(0,3)}</button>`).join('')}</div></div>`;
-    V.forEach(v=>{let mtd=getMetaVendedoraMes(v.nome,MS)/DU,tr=0;h+=`<div class="bloco"><h3>${v.nome} • Meta: ${fm(getMetaVendedoraMes(v.nome,MS))} | Dia: ${fm(mtd)}</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Status</th></tr></thead><tbody>`;
-    d.forEach(x=>{let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,gap=r-mtd,perc=mtd>0?(r/mtd)*100:0;tr+=r;h+=`<tr><td>${x.dia}</td><td>${fm(mtd)}</td><td><input type="number" value="${r>0?r:''}" onchange="lv('${v.nome}','${x.data}',this.value)" placeholder="0" step="0.01" min="0"></td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td>${perc.toFixed(0)}%</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc>=100?'Atingiu':'Não'}</span></td></tr>`;});
-    let metaV=getMetaVendedoraMes(v.nome,MS),pt=metaV>0?(tr/metaV)*100:0;h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(metaV)}</td><td>${fm(tr)}</td><td class="${tr>=metaV?'positivo':'negativo'}">${fm(tr-metaV)}</td><td>${pt.toFixed(1)}%</td><td><span class="tag ${pt>=100?'tag-verde':'tag-amarelo'}">${pt.toFixed(1)}%</span></td></tr></tbody></table></div></div>`;});
-    document.getElementById('main-content').innerHTML=h;
-}
-function lv(vn,dt,vl){let v=parseFloat(vl);if(isNaN(v)||v<0)return;L=L.filter(l=>!(l.data===dt&&l.vend===vn));if(v>0)L.push({data:dt,vend:vn,real:v,pecas:0,atend:0,cqtd:0,cval:0,obs:''});salvarLancamentos();rv();}
+        function rv() {
+            let d = du(MS, 2026);
+            let h =
+                `<div class="page-header"><h1>Painel Vendedoras • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rv();">${m.substring(0,3)}</button>`).join('')}</div></div>`;
+            V.forEach(v => { let mtd = getMetaVendedoraMes(v.nome, MS) / DU,
+                    tr = 0;
+                h +=
+                    `<div class="bloco"><h3>${v.nome} • Meta: ${fm(getMetaVendedoraMes(v.nome,MS))} | Dia: ${fm(mtd)}</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Status</th></tr></thead><tbody>`;
+                d.forEach(x => { let lc = L.find(l => l.data === x.data && l.vend === v.nome),
+                        r = lc ? lc.real || 0 : 0,
+                        gap = r - mtd,
+                        perc = mtd > 0 ? (r / mtd) * 100 : 0;
+                    tr += r;
+                    h +=
+                        `<tr><td>${x.dia}</td><td>${fm(mtd)}</td><td><input type="number" value="${r>0?r:''}" onchange="lv('${v.nome}','${x.data}',this.value)" placeholder="0" step="0.01" min="0"></td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td>${perc.toFixed(0)}%</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc>=100?'Atingiu':'Não'}</span></td></tr>`; });
+                let metaV = getMetaVendedoraMes(v.nome, MS),
+                    pt = metaV > 0 ? (tr / metaV) * 100 : 0;
+                h +=
+                    `<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(metaV)}</td><td>${fm(tr)}</td><td class="${tr>=metaV?'positivo':'negativo'}">${fm(tr-metaV)}</td><td>${pt.toFixed(1)}%</td><td><span class="tag ${pt>=100?'tag-verde':'tag-amarelo'}">${pt.toFixed(1)}%</span></td></tr></tbody></table></div></div>`; });
+            document.getElementById('main-content').innerHTML = h;
+        }
 
-function rpv(){
-    let v=V[VEND_SEL],metaV=getMetaVendedoraMes(v.nome,MS),rm=grvm(v.nome,MS,2026),pm=gpm(v.nome,MS,2026),am=gam(v.nome,MS,2026),cmq=gcmq(v.nome,MS,2026),cmv=gcmv(v.nome,MS,2026),semanas=sem(MS,2026);
-    let pa=am>0?pm/am:0,tm=am>0?rm/am:0,txConv=am>0?(pm/am)*100:0,percMeta=metaV>0?(rm/metaV)*100:0;
-    let h=`<div class="page-header"><h1>Meu Painel • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rpv();">${m.substring(0,3)}</button>`).join('')}</div></div>
+        function lv(vn, dt, vl) { let v = parseFloat(vl); if (isNaN(v) || v < 0) return;
+            L = L.filter(l => !(l.data === dt && l.vend === vn)); if (v > 0) L.push({ data: dt, vend: vn, real: v,
+                pecas: 0, atend: 0, cqtd: 0, cval: 0, obs: '' });
+            sv();
+            rv(); }
+
+        function rpv() {
+            let v = V[VEND_SEL],
+                metaV = getMetaVendedoraMes(v.nome, MS),
+                rm = grvm(v.nome, MS, 2026),
+                pm = gpm(v.nome, MS, 2026),
+                am = gam(v.nome, MS, 2026),
+                cmq = gcmq(v.nome, MS, 2026),
+                cmv = gcmv(v.nome, MS, 2026),
+                semanas = sem(MS, 2026);
+            let pa = am > 0 ? pm / am : 0,
+                tm = am > 0 ? rm / am : 0,
+                txConv = am > 0 ? (pm / am) * 100 : 0,
+                percMeta = metaV > 0 ? (rm / metaV) * 100 : 0;
+            let h = `<div class="page-header"><h1>Meu Painel • ${MN[MS]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS?'ativo':''}" onclick="MS=${i};rpv();">${m.substring(0,3)}</button>`).join('')}</div></div>
     <div class="vendedora-selector">${V.map((v,i)=>`<button class="vend-btn ${i===VEND_SEL?'ativo':''}" onclick="VEND_SEL=${i};rpv();">${v.nome}</button>`).join('')}</div>
     <div class="cards-grid">
     <div class="card-meta" style="border-top-color:#9C27B0;"><div class="card-titulo">Peças Vendidas</div><div class="card-valor">${pm}</div><div class="card-sub">PA: ${pa.toFixed(1)}</div></div>
@@ -262,21 +781,56 @@ function rpv(){
     <div class="card-meta" style="border-top-color:#4CAF50;"><div class="card-titulo">% Meta Mensal</div><div class="card-valor">${percMeta.toFixed(1)}%</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${Math.min(percMeta,100)}%;background:${percMeta>=100?'#4CAF50':percMeta>=90?'#ff9800':'#f44336'};"></div></div></div>
     <div class="card-meta" style="border-top-color:#FF5722;"><div class="card-titulo">Condicional</div><div class="card-valor">${cmq} un.</div><div class="card-sub">${fm(cmv)} em condicional</div></div>
     <div class="card-meta" style="border-top-color:#607D8B;"><div class="card-titulo">Meta Mensal</div><div class="card-valor">${fm(metaV)}</div><div class="card-sub">Falta: ${fm(Math.max(0,metaV-rm))}</div></div>
-    </div>
-    <div class="bloco"><h3>📅 Metas Semanais • ${v.nome}</h3><div style="display:flex;gap:12px;flex-wrap:wrap;">`;
-    semanas.forEach((sm,i)=>{let metaSem=getMetaSemanal(v.nome,MS,i+1),realizadoSem=grvs(v.nome,MS,2026,i+1),faltaSem=metaSem-realizadoSem,percSem=metaSem>0?(realizadoSem/metaSem)*100:0,corFalta=faltaSem<=0?'green':'red';
-    h+=`<div class="semana-card" style="flex:1;min-width:140px;"><div class="semana-num">Semana ${i+1}</div><div style="font-size:10px;color:#888;">${sm[0].dia}-${sm[sm.length-1].dia}</div><div class="semana-realizado" style="margin-top:6px;">${fm(realizadoSem)}</div><div class="semana-meta">Meta: ${fm(metaSem)}</div><div class="semana-falta" style="color:${corFalta};margin-top:4px;">${faltaSem<=0?'✅ Atingida!':'Falta: '+fm(faltaSem)}</div><div class="progresso-bar" style="margin-top:6px;"><div class="progresso-preenchido" style="width:${Math.min(percSem,100)}%;background:${percSem>=100?'#4CAF50':percSem>=90?'#ff9800':'#f44336'};"></div></div><div style="font-size:9px;color:#888;margin-top:3px;">${percSem.toFixed(1)}%</div></div>`;});
-    h+=`</div></div>`;
-    h+=`<div class="bloco"><h3>Histórico Diário - ${v.nome}</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Realizado</th><th>Peças</th><th>Atend</th><th>PA</th><th>Ticket</th><th>Tx Conv</th><th>Cond. Qtd</th><th>Cond. R$</th><th>Meta</th><th>%</th><th>Status</th></tr></thead><tbody>`;
-    let dias=du(MS,2026),mtd=metaV/DU;
-    dias.forEach(x=>{let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,p=lc?lc.pecas||0:0,a=lc?lc.atend||0:0,cq=lc?lc.cqtd||0:0,cv=lc?lc.cval||0:0,paDia=a>0?p/a:0,tkDia=a>0?r/a:0,txConvDia=a>0?(p/a)*100:0,percDia=mtd>0?(r/mtd)*100:0;
-    h+=`<tr><td>${x.dia}</td><td>${fm(r)}</td><td>${p}</td><td>${a}</td><td>${paDia.toFixed(1)}</td><td>${fm(tkDia)}</td><td>${txConvDia.toFixed(1)}%</td><td>${cq}</td><td>${fm(cv)}</td><td>${fm(mtd)}</td><td>${percDia.toFixed(0)}%</td><td><span class="tag ${percDia>=100?'tag-verde':percDia>=90?'tag-amarelo':'tag-vermelho'}">${percDia>=100?'Atingiu':'Não'}</span></td></tr>`;});
-    h+=`</tbody></table></div></div>`;document.getElementById('main-content').innerHTML=h;
-}
+    </div>`;
 
-function rpa(){
-    let rm=grm(MS,2026),pmin=ML.min>0?(rm/ML.min)*100:0;
-    let h=`<div class="page-header"><h1>PA & Condicional • ${MN[MS]} 2026</h1></div>
+            // CARDS DE METAS SEMANAIS
+            h +=
+                `<div class="bloco"><h3>📅 Metas Semanais • ${v.nome}</h3><div style="display:flex;gap:12px;flex-wrap:wrap;">`;
+            semanas.forEach((sm, i) => {
+                let metaSem = getMetaSemanal(v.nome, MS, i + 1);
+                let realizadoSem = grvs(v.nome, MS, 2026, i + 1);
+                let faltaSem = metaSem - realizadoSem;
+                let percSem = metaSem > 0 ? (realizadoSem / metaSem) * 100 : 0;
+                let corFalta = faltaSem <= 0 ? 'green' : 'red';
+                h += `
+            <div class="semana-card" style="flex:1;min-width:140px;">
+                <div class="semana-num">Semana ${i+1}</div>
+                <div style="font-size:10px;color:#888;">${sm[0].dia}-${sm[sm.length-1].dia}</div>
+                <div class="semana-realizado" style="margin-top:6px;">${fm(realizadoSem)}</div>
+                <div class="semana-meta">Meta: ${fm(metaSem)}</div>
+                <div class="semana-falta" style="color:${corFalta};margin-top:4px;">
+                    ${faltaSem <= 0 ? '✅ Atingida!' : 'Falta: ' + fm(faltaSem)}
+                </div>
+                <div class="progresso-bar" style="margin-top:6px;"><div class="progresso-preenchido" style="width:${Math.min(percSem,100)}%;background:${percSem>=100?'#4CAF50':percSem>=90?'#ff9800':'#f44336'};"></div></div>
+                <div style="font-size:9px;color:#888;margin-top:3px;">${percSem.toFixed(1)}%</div>
+            </div>`;
+            });
+            h += `</div></div>`;
+
+            h +=
+                `<div class="bloco"><h3>Histórico Diário - ${v.nome}</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Realizado</th><th>Peças</th><th>Atend</th><th>PA</th><th>Ticket</th><th>Tx Conv</th><th>Cond. Qtd</th><th>Cond. R$</th><th>Meta</th><th>%</th><th>Status</th></tr></thead><tbody>`;
+            let dias = du(MS, 2026),
+                mtd = metaV / DU;
+            dias.forEach(x => { let lc = L.find(l => l.data === x.data && l.vend === v.nome),
+                    r = lc ? lc.real || 0 : 0,
+                    p = lc ? lc.pecas || 0 : 0,
+                    a = lc ? lc.atend || 0 : 0,
+                    cq = lc ? lc.cqtd || 0 : 0,
+                    cv = lc ? lc.cval || 0 : 0,
+                    paDia = a > 0 ? p / a : 0,
+                    tkDia = a > 0 ? r / a : 0,
+                    txConvDia = a > 0 ? (p / a) * 100 : 0,
+                    percDia = mtd > 0 ? (r / mtd) * 100 : 0;
+                h +=
+                    `<tr><td>${x.dia}</td><td>${fm(r)}</td><td>${p}</td><td>${a}</td><td>${paDia.toFixed(1)}</td><td>${fm(tkDia)}</td><td>${txConvDia.toFixed(1)}%</td><td>${cq}</td><td>${fm(cv)}</td><td>${fm(mtd)}</td><td>${percDia.toFixed(0)}%</td><td><span class="tag ${percDia>=100?'tag-verde':percDia>=90?'tag-amarelo':'tag-vermelho'}">${percDia>=100?'Atingiu':'Não'}</span></td></tr>`; });
+            h += `</tbody></table></div></div>`;
+            document.getElementById('main-content').innerHTML = h;
+        }
+
+        function rpa() {
+            let rm = grm(MS, 2026),
+                pmin = ML.min > 0 ? (rm / ML.min) * 100 : 0;
+            let h = `<div class="page-header"><h1>PA & Condicional • ${MN[MS]} 2026</h1></div>
     <div class="bloco"><h3>Resumo Geral</h3><div class="cards-grid">
     <div class="card-meta"><div class="card-titulo">Peças</div><div class="card-valor">${L.filter(l=>l.data.startsWith(`2026-${String(MS+1).padStart(2,'0')}`)).reduce((s,l)=>s+(l.pecas||0),0)}</div></div>
     <div class="card-meta"><div class="card-titulo">Atendimentos</div><div class="card-valor">${L.filter(l=>l.data.startsWith(`2026-${String(MS+1).padStart(2,'0')}`)).reduce((s,l)=>s+(l.atend||0),0)}</div></div>
@@ -285,56 +839,188 @@ function rpa(){
     <div class="bloco"><h3>Condicional</h3>
     <div class="form-row"><div class="form-group"><label>% Atingido Meta Mínima</label><input type="number" id="cd-perc" value="${CD.perc}" step="0.1" min="0"></div><div class="form-group"><label>Bônus (R$)</label><input type="number" id="cd-bonus" value="${CD.bonus}" step="0.01" min="0"></div></div>
     <div class="form-row"><div class="form-group"><label>Observações</label><textarea id="cd-obs">${CD.obs}</textarea></div></div>
-    <button class="btn btn-dourado" onclick="svCD2()">💾 Salvar</button><div id="msg-cd"></div>
+    <button class="btn btn-dourado" onclick="svCD()">💾 Salvar</button><div id="msg-cd"></div>
     <p style="margin-top:12px;font-size:12px;">Meta Mínima: ${fm(ML.min)} | Realizado: ${fm(rm)} | Atingimento: ${pmin.toFixed(1)}%</p></div>`;
-    document.getElementById('main-content').innerHTML=h;
-}
-async function svCD2(){CD.perc=parseFloat(document.getElementById('cd-perc').value)||0;CD.bonus=parseFloat(document.getElementById('cd-bonus').value)||0;CD.obs=document.getElementById('cd-obs').value;await salvarCD();document.getElementById('msg-cd').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
+            document.getElementById('main-content').innerHTML = h;
+        }
 
-function rly(){
-    let dias=du(MS_LY,2025);let h=`<div class="page-header"><h1>Ajustar LY 2025</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS_LY?'ativo':''}" onclick="MS_LY=${i};rly();">${m.substring(0,3)}</button>`).join('')}</div></div>
+        function svCD() { CD.perc = parseFloat(document.getElementById('cd-perc').value) || 0;
+            CD.bonus = parseFloat(document.getElementById('cd-bonus').value) || 0;
+            CD.obs = document.getElementById('cd-obs').value;
+            sv();
+            document.getElementById('msg-cd').innerHTML = '<div class="alerta alerta-sucesso">Salvo!</div>'; }
+
+        function rly() {
+            let dias = du(MS_LY, 2025);
+            let h = `<div class="page-header"><h1>Ajustar LY 2025</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS_LY?'ativo':''}" onclick="MS_LY=${i};rly();">${m.substring(0,3)}</button>`).join('')}</div></div>
     <div class="bloco"><h3>${MN[MS_LY]} 2025 – Valores Diários</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Data</th><th>Dia Sem.</th><th>LY (R$)</th></tr></thead><tbody>`;
-    dias.forEach(d=>{let chave=d.data.replace('2025-','2026-'),val=LY_DIA[chave]||'';h+=`<tr><td><b>${d.dia}</b></td><td>${d.dia}/${String(MS_LY+1).padStart(2,'0')}/2025</td><td>${DIAS_SEMANA[d.ds]}</td><td><input type="number" id="ly-${chave}" value="${val}" step="0.01" min="0" style="width:120px;"></td></tr>`;});
-    h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:15px;" onclick="svLY2()">💾 Salvar LY</button><div id="msg-ly"></div></div>`;
-    document.getElementById('main-content').innerHTML=h;
-}
-async function svLY2(){let dias=du(MS_LY,2025);dias.forEach(d=>{let chave=d.data.replace('2025-','2026-'),val=parseFloat(document.getElementById('ly-'+chave).value);if(!isNaN(val)&&val>=0)LY_DIA[chave]=val;else delete LY_DIA[chave];});await salvarLY();document.getElementById('msg-ly').innerHTML='<div class="alerta alerta-sucesso">LY salvo!</div>';}
+            dias.forEach(d => { let chave = d.data.replace('2025-', '2026-'),
+                    val = LY_DIA[chave] || '';
+                h +=
+                    `<tr><td><b>${d.dia}</b></td><td>${d.dia}/${String(MS_LY+1).padStart(2,'0')}/2025</td><td>${DIAS_SEMANA[d.ds]}</td><td><input type="number" id="ly-${chave}" value="${val}" step="0.01" min="0" style="width:120px;"></td></tr>`; });
+            h +=
+                `</tbody></table></div><button class="btn btn-dourado" style="margin-top:15px;" onclick="svLY()">💾 Salvar LY</button><div id="msg-ly"></div></div>`;
+            document.getElementById('main-content').innerHTML = h;
+        }
 
-function rconfig(){
-    let semanas=sem(MS_CONFIG,2026);
-    let h=`<div class="page-header"><h1>Configurações</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS_CONFIG?'ativo':''}" onclick="MS_CONFIG=${i};rconfig();">${m.substring(0,3)}</button>`).join('')}</div></div>
-    <div class="bloco"><h3>Cadastro de Vendedoras</h3><div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="cfg-nome"></div><div class="form-group"><label>Meta Padrão (R$)</label><input type="number" id="cfg-meta-padrao" step="0.01" min="0"></div></div>
-    <button class="btn btn-rosa" onclick="addV2()">💾 Adicionar</button><div id="msg-cfg-add"></div>
+        function svLY() { let dias = du(MS_LY, 2025);
+            dias.forEach(d => { let chave = d.data.replace('2025-', '2026-'),
+                    val = parseFloat(document.getElementById('ly-' + chave).value); if (!isNaN(val) && val >= 0)
+                    LY_DIA[chave] = val;
+                else delete LY_DIA[chave]; });
+            sv();
+            document.getElementById('msg-ly').innerHTML = '<div class="alerta alerta-sucesso">LY salvo!</div>'; }
+
+        function rconfig() {
+            let h = `<div class="page-header"><h1>Configurações</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===MS_CONFIG?'ativo':''}" onclick="MS_CONFIG=${i};rconfig();">${m.substring(0,3)}</button>`).join('')}</div></div>
+    <div class="bloco"><h3>Cadastro de Vendedoras</h3><p style="font-size:11px;color:#888;margin-bottom:12px;">Adicione, edite nome, meta padrão ou remova vendedoras.</p>
+    <div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="cfg-nome"></div><div class="form-group"><label>Meta Padrão (R$)</label><input type="number" id="cfg-meta-padrao" step="0.01" min="0"></div></div>
+    <button class="btn btn-rosa" onclick="addVendedora()">💾 Adicionar</button><div id="msg-cfg-add"></div>
     <div class="tabela-scroll" style="margin-top:15px;"><table><thead><tr><th>Nome</th><th>Meta Padrão</th><th>Meta Diária</th><th>Ações</th></tr></thead><tbody>`;
-    V.forEach((v,i)=>{h+=`<tr><td><input type="text" value="${v.nome}" onchange="renomearV2(${i},this.value)" style="width:130px;"></td><td><input type="number" value="${v.meta}" onchange="altMetaP2(${i},this.value)" step="0.01" min="0" style="width:110px;"></td><td>${fm(v.meta/DU)}</td><td><button class="btn btn-vermelho btn-sm" onclick="remV2(${i})">🗑️</button></td></tr>`;});
-    h+=`</tbody></table></div></div>
-    <div class="bloco"><h3>Metas Mensais • ${MN[MS_CONFIG]} 2026</h3><div class="tabela-scroll"><table><thead><tr><th>Vendedora</th><th>Meta Padrão</th><th>Meta ${MN[MS_CONFIG]} (R$)</th><th>Meta Diária</th></tr></thead><tbody>`;
-    V.forEach(v=>{let ma=getMetaVendedoraMes(v.nome,MS_CONFIG),mdd=ma/DU;h+=`<tr><td><b>${v.nome}</b></td><td>${fm(v.meta)}</td><td><input type="number" id="meta-${v.nome.replace(/\s/g,'_')}" value="${ma}" step="0.01" min="0" style="width:120px;"></td><td>${fm(mdd)}</td></tr>`;});
-    h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px;" onclick="svMM2()">💾 Salvar Metas de ${MN[MS_CONFIG]}</button><div id="msg-cfg-metas"></div></div>
-    <div class="bloco"><h3>Metas Semanais • ${MN[MS_CONFIG]} 2026</h3><div class="tabela-scroll"><table><thead><tr><th>Vendedora</th>`;
-    semanas.forEach((sm,i)=>{h+=`<th>Sem ${i+1}<br><small>${sm[0].dia}-${sm[sm.length-1].dia}</small></th>`;});
-    h+=`</tr></thead><tbody>`;
-    V.forEach(v=>{h+=`<tr><td><b>${v.nome}</b></td>`;semanas.forEach((sm,i)=>{let ms=getMetaSemanal(v.nome,MS_CONFIG,i+1);h+=`<td><input type="number" id="metasem-${v.nome.replace(/\s/g,'_')}-S${i+1}" value="${ms}" step="0.01" min="0" style="width:90px;"></td>`;});h+=`</tr>`;});
-    h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px;" onclick="svMS2()">💾 Salvar Metas Semanais</button><div id="msg-cfg-metassem"></div></div>
-    <div class="bloco"><h3>Metas da Loja</h3><div class="form-row"><div class="form-group"><label>Meta Mínima (R$)</label><input type="number" id="cfg-loja-min" value="${ML.min}" step="0.01" min="0"></div><div class="form-group"><label>Meta Máxima (R$)</label><input type="number" id="cfg-loja-max" value="${ML.max}" step="0.01" min="0"></div><div class="form-group"><label>Meta BIG (R$)</label><input type="number" id="cfg-loja-big" value="${ML.big}" step="0.01" min="0"></div></div>
-    <button class="btn btn-verde" onclick="svML2()">💾 Salvar Metas da Loja</button><div id="msg-cfg-loja"></div></div>`;
-    document.getElementById('main-content').innerHTML=h;
-}
+            V.forEach((v, i) => { h += `<tr><td><input type="text" value="${v.nome}" onchange="renomearVendedora(${i},this.value)" style="width:130px;"></td>
+    <td><input type="number" value="${v.meta}" onchange="alterarMetaPadrao(${i},this.value)" step="0.01" min="0" style="width:110px;"></td>
+    <td>${fm(v.meta/DU)}</td><td><button class="btn btn-vermelho btn-sm" onclick="removerVendedora(${i})">🗑️</button></td></tr>`; });
+            h += `</tbody></table></div></div>
 
-async function addV2(){let n=document.getElementById('cfg-nome').value.trim(),m=parseFloat(document.getElementById('cfg-meta-padrao').value),mg=document.getElementById('msg-cfg-add');if(!n||isNaN(m)||m<=0){mg.innerHTML='<div class="alerta alerta-erro">Preencha corretamente.</div>';return;}if(V.find(v=>v.nome.toLowerCase()===n.toLowerCase())){mg.innerHTML='<div class="alerta alerta-erro">Já existe.</div>';return;}V.push({nome:n,meta:m});await salvarVendedoras();document.getElementById('cfg-nome').value='';document.getElementById('cfg-meta-padrao').value='';mg.innerHTML='<div class="alerta alerta-sucesso">Adicionada!</div>';rconfig();}
-async function renomearV2(i,nn){let n=nn.trim();if(!n)return;if(V.find((v,j)=>v.nome.toLowerCase()===n.toLowerCase()&&j!==i)){alert('Já existe.');rconfig();return;}let ant=V[i].nome;V[i].nome=n;L.forEach(l=>{if(l.vend===ant)l.vend=n;});if(METAS_MENSAIS[ant]){METAS_MENSAIS[n]=METAS_MENSAIS[ant];delete METAS_MENSAIS[ant];}if(METAS_SEMANAIS[ant]){METAS_SEMANAIS[n]=METAS_SEMANAIS[ant];delete METAS_SEMANAIS[ant];}await salvarTudo();rconfig();}
-async function altMetaP2(i,vl){let m=parseFloat(vl);if(isNaN(m)||m<=0){rconfig();return;}V[i].meta=m;await salvarVendedoras();}
-async function remV2(i){if(confirm(`Remover "${V[i].nome}"?`)){V.splice(i,1);await salvarVendedoras();rconfig();}}
-async function svMM2(){let chave=MNN[MS_CONFIG];V.forEach(v=>{let input=document.getElementById('meta-'+v.nome.replace(/\s/g,'_'));if(input){let val=parseFloat(input.value);if(!isNaN(val)&&val>0){if(!METAS_MENSAIS[v.nome])METAS_MENSAIS[v.nome]={};METAS_MENSAIS[v.nome][chave]=val;}else{if(METAS_MENSAIS[v.nome])delete METAS_MENSAIS[v.nome][chave];}}});await salvarMM();document.getElementById('msg-cfg-metas').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
-async function svMS2(){let semanas=sem(MS_CONFIG,2026);V.forEach(v=>{if(!METAS_SEMANAIS[v.nome])METAS_SEMANAIS[v.nome]={};semanas.forEach((sm,i)=>{let chave=`${MNN[MS_CONFIG]}_S${i+1}`;let input=document.getElementById('metasem-'+v.nome.replace(/\s/g,'_')+'-S'+(i+1));if(input){let val=parseFloat(input.value);if(!isNaN(val)&&val>0)METAS_SEMANAIS[v.nome][chave]=val;else delete METAS_SEMANAIS[v.nome][chave];}});});await salvarMS();document.getElementById('msg-cfg-metassem').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
-async function svML2(){let min=parseFloat(document.getElementById('cfg-loja-min').value),max=parseFloat(document.getElementById('cfg-loja-max').value),big=parseFloat(document.getElementById('cfg-loja-big').value);if(!isNaN(min)&&min>0)ML.min=min;if(!isNaN(max)&&max>0)ML.max=max;if(!isNaN(big)&&big>0)ML.big=big;await salvarML();document.getElementById('msg-cfg-loja').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
+    <div class="bloco"><h3>Metas Mensais por Vendedora • ${MN[MS_CONFIG]} 2026</h3><p style="font-size:11px;color:#888;margin-bottom:12px;">Defina a meta para <b>${MN[MS_CONFIG]}</b>. Se deixar em branco, usa a meta padrão.</p>
+    <div class="tabela-scroll"><table><thead><tr><th>Vendedora</th><th>Meta Padrão</th><th>Meta para ${MN[MS_CONFIG]} (R$)</th><th>Meta Diária</th></tr></thead><tbody>`;
+            V.forEach(v => { let metaAtual = getMetaVendedoraMes(v.nome, MS_CONFIG),
+                    metaDiaria = metaAtual / DU;
+                h +=
+                    `<tr><td><b>${v.nome}</b></td><td>${fm(v.meta)}</td><td><input type="number" id="meta-${v.nome.replace(/\s/g,'_')}" value="${metaAtual}" step="0.01" min="0" style="width:120px;"></td><td>${fm(metaDiaria)}</td></tr>`; });
+            h +=
+                `</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px;" onclick="salvarMetasMensais()">💾 Salvar Metas de ${MN[MS_CONFIG]}</button><div id="msg-cfg-metas"></div></div>`;
 
-function abreModal(dt){document.getElementById('md-data').value=dt;document.getElementById('md-vend').innerHTML=V.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');document.getElementById('md-valor').value='';document.getElementById('md-pecas').value='';document.getElementById('md-atend').value='';document.getElementById('md-cqtd').value='';document.getElementById('md-cval').value='';document.getElementById('md-obs').value='';document.getElementById('modal-lanc').classList.add('ativo');}
-function fechaModal(){document.getElementById('modal-lanc').classList.remove('ativo');}
-async function salvaModal(){let dt=document.getElementById('md-data').value,vn=document.getElementById('md-vend').value,vl=parseFloat(document.getElementById('md-valor').value)||0,pc=parseInt(document.getElementById('md-pecas').value)||0,at=parseInt(document.getElementById('md-atend').value)||0,cq=parseInt(document.getElementById('md-cqtd').value)||0,cv=parseFloat(document.getElementById('md-cval').value)||0,ob=document.getElementById('md-obs').value;if(!dt||!vn||vl<=0){alert('Preencha corretamente.');return;}L=L.filter(l=>!(l.data===dt&&l.vend===vn));L.push({data:dt,vend:vn,real:vl,pecas:pc,atend:at,cqtd:cq,cval:cv,obs:ob});await salvarLancamentos();fechaModal();rl();}
+            // METAS SEMANAIS
+            let semanas = sem(MS_CONFIG, 2026);
+            h +=
+                `<div class="bloco"><h3>Metas Semanais por Vendedora • ${MN[MS_CONFIG]} 2026</h3><p style="font-size:11px;color:#888;margin-bottom:12px;">Defina a meta de cada semana para <b>${MN[MS_CONFIG]}</b>. Se deixar em branco, a meta semanal será calculada automaticamente (meta mensal ÷ número de semanas).</p>
+    <div class="tabela-scroll"><table><thead><tr><th>Vendedora</th>`;
+            semanas.forEach((sm, i) => { h +=
+                    `<th>Sem ${i+1}<br><small>${sm[0].dia}-${sm[sm.length-1].dia}</small></th>`; });
+            h += `</tr></thead><tbody>`;
+            V.forEach(v => {
+                h += `<tr><td><b>${v.nome}</b></td>`;
+                semanas.forEach((sm, i) => {
+                    let metaSem = getMetaSemanal(v.nome, MS_CONFIG, i + 1);
+                    let chave = `${MNN[MS_CONFIG]}_S${i+1}`;
+                    h +=
+                        `<td><input type="number" id="metasem-${v.nome.replace(/\s/g,'_')}-S${i+1}" value="${metaSem}" step="0.01" min="0" style="width:90px;"></td>`;
+                });
+                h += `</tr>`;
+            });
+            h +=
+                `</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px;" onclick="salvarMetasSemanais()">💾 Salvar Metas Semanais de ${MN[MS_CONFIG]}</button><div id="msg-cfg-metassem"></div></div>`;
 
-// Iniciar
-carregarDados();
-</script>
+            h += `<div class="bloco"><h3>Metas da Loja</h3><div class="form-row">
+    <div class="form-group"><label>Meta Mínima (R$)</label><input type="number" id="cfg-loja-min" value="${ML.min}" step="0.01" min="0"></div>
+    <div class="form-group"><label>Meta Máxima (R$)</label><input type="number" id="cfg-loja-max" value="${ML.max}" step="0.01" min="0"></div>
+    <div class="form-group"><label>Meta BIG (R$)</label><input type="number" id="cfg-loja-big" value="${ML.big}" step="0.01" min="0"></div></div>
+    <button class="btn btn-verde" onclick="salvarMetasLoja()">💾 Salvar Metas da Loja</button><div id="msg-cfg-loja"></div></div>`;
+            document.getElementById('main-content').innerHTML = h;
+        }
+
+        function salvarMetasSemanais() {
+            let semanas = sem(MS_CONFIG, 2026);
+            V.forEach(v => {
+                if (!METAS_SEMANAIS[v.nome]) METAS_SEMANAIS[v.nome] = {};
+                semanas.forEach((sm, i) => {
+                    let chave = `${MNN[MS_CONFIG]}_S${i+1}`;
+                    let input = document.getElementById('metasem-' + v.nome.replace(/\s/g, '_') + '-S' + (i +
+                        1));
+                    if (input) {
+                        let val = parseFloat(input.value);
+                        if (!isNaN(val) && val > 0) {
+                            METAS_SEMANAIS[v.nome][chave] = val;
+                        } else {
+                            delete METAS_SEMANAIS[v.nome][chave];
+                        }
+                    }
+                });
+            });
+            sv();
+            document.getElementById('msg-cfg-metassem').innerHTML = '<div class="alerta alerta-sucesso">Metas semanais de ' +
+                MN[MS_CONFIG] + ' salvas!</div>';
+        }
+
+        function addVendedora() { let n = document.getElementById('cfg-nome').value.trim(),
+                m = parseFloat(document.getElementById('cfg-meta-padrao').value),
+                mg = document.getElementById('msg-cfg-add'); if (!n || isNaN(m) || m <= 0) { mg.innerHTML =
+                    '<div class="alerta alerta-erro">Preencha nome e meta.</div>'; return; } if (V.find(v => v.nome
+                    .toLowerCase() === n.toLowerCase())) { mg.innerHTML =
+                    '<div class="alerta alerta-erro">Já existe.</div>'; return; }
+            V.push({ nome: n, meta: m });
+            sv();
+            document.getElementById('cfg-nome').value = '';
+            document.getElementById('cfg-meta-padrao').value = '';
+            mg.innerHTML = '<div class="alerta alerta-sucesso">Vendedora adicionada!</div>';
+            rconfig(); }
+
+        function renomearVendedora(index, novoNome) { let nn = novoNome.trim(); if (!nn) return; if (V.find((v, i) => v.nome
+                .toLowerCase() === nn.toLowerCase() && i !== index)) { alert('Nome já existe.');
+                rconfig(); return; } let antigo = V[index].nome;
+            V[index].nome = nn;
+            L.forEach(l => { if (l.vend === antigo) l.vend = nn; }); if (METAS_MENSAIS[antigo]) { METAS_MENSAIS[nn] =
+                    METAS_MENSAIS[antigo]; delete METAS_MENSAIS[antigo]; } if (METAS_SEMANAIS[antigo]) { METAS_SEMANAIS[
+                    nn] = METAS_SEMANAIS[antigo]; delete METAS_SEMANAIS[antigo]; }
+            sv();
+            rconfig(); }
+
+        function alterarMetaPadrao(index, novoValor) { let m = parseFloat(novoValor); if (isNaN(m) || m <= 0) { rconfig
+                (); return; }
+            V[index].meta = m;
+            sv(); }
+
+        function removerVendedora(index) { if (confirm(`Remover "${V[index].nome}"?`)) { V.splice(index, 1);
+                sv();
+                rconfig(); } }
+
+        function salvarMetasMensais() { let chave = MNN[MS_CONFIG];
+            V.forEach(v => { let input = document.getElementById('meta-' + v.nome.replace(/\s/g, '_')); if (input) { let
+                    val = parseFloat(input.value); if (!isNaN(val) && val > 0) { if (!METAS_MENSAIS[v.nome])
+                        METAS_MENSAIS[v.nome] = {};
+                    METAS_MENSAIS[v.nome][chave] = val; } else { if (METAS_MENSAIS[v.nome]) delete METAS_MENSAIS[v.nome][
+                            chave
+                        ]; } } });
+            sv();
+            document.getElementById('msg-cfg-metas').innerHTML = '<div class="alerta alerta-sucesso">Metas de ' + MN[
+                MS_CONFIG] + ' salvas!</div>'; }
+
+        function salvarMetasLoja() { let min = parseFloat(document.getElementById('cfg-loja-min').value),
+                max = parseFloat(document.getElementById('cfg-loja-max').value),
+                big = parseFloat(document.getElementById('cfg-loja-big').value); if (!isNaN(min) && min > 0) ML.min =
+                min; if (!isNaN(max) && max > 0) ML.max = max; if (!isNaN(big) && big > 0) ML.big = big;
+            sv();
+            document.getElementById('msg-cfg-loja').innerHTML = '<div class="alerta alerta-sucesso">Metas da loja salvas!</div>'; }
+
+        function abreModal(dt) { document.getElementById('md-data').value = dt;
+            document.getElementById('md-vend').innerHTML = V.map(v => `<option value="${v.nome}">${v.nome}</option>`).join(
+                '');
+            document.getElementById('md-valor').value = '';
+            document.getElementById('md-pecas').value = '';
+            document.getElementById('md-atend').value = '';
+            document.getElementById('md-cqtd').value = '';
+            document.getElementById('md-cval').value = '';
+            document.getElementById('md-obs').value = '';
+            document.getElementById('modal-lanc').classList.add('ativo'); }
+
+        function fechaModal() { document.getElementById('modal-lanc').classList.remove('ativo'); }
+
+        function salvaModal() { let dt = document.getElementById('md-data').value,
+                vn = document.getElementById('md-vend').value,
+                vl = parseFloat(document.getElementById('md-valor').value) || 0,
+                pc = parseInt(document.getElementById('md-pecas').value) || 0,
+                at = parseInt(document.getElementById('md-atend').value) || 0,
+                cq = parseInt(document.getElementById('md-cqtd').value) || 0,
+                cv = parseFloat(document.getElementById('md-cval').value) || 0,
+                ob = document.getElementById('md-obs').value; if (!dt || !vn || vl <= 0) { alert(
+                    'Preencha corretamente.'); return; }
+            L = L.filter(l => !(l.data === dt && l.vend === vn));
+            L.push({ data: dt, vend: vn, real: vl, pecas: pc, atend: at, cqtd: cq, cval: cv, obs: ob });
+            sv();
+            fechaModal();
+            rl(); }
+        rd();
+    </script>
 </body>
 </html>
