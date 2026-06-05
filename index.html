@@ -119,15 +119,11 @@
 </div>
 <script>
     // ══════════════════════════════════════════════
-    // CONFIGURAÇÃO SUPABASE
-    // Para usar localmente: preencha abaixo com suas chaves
-    // No Vercel: as variáveis são injetadas automaticamente
+    // CONFIGURAÇÃO SUPABASE (apenas variáveis de ambiente)
     // ══════════════════════════════════════════════
-    const SUPABASE_URL = window.__env__?.SUPABASE_URL || localStorage.getItem('sb_url') || '';
-    const SUPABASE_ANON_KEY = window.__env__?.SUPABASE_ANON_KEY || localStorage.getItem('sb_key') || '';
-    const db = (SUPABASE_URL && SUPABASE_ANON_KEY)
-        ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-        : null;
+    const SUPABASE_URL = window.__env__?.SUPABASE_URL || 'https://ysdqgnljhnczrgdllebj.supabase.co';
+    const SUPABASE_ANON_KEY = window.__env__?.SUPABASE_ANON_KEY || 'sb_publishable_fHLVBcsUryHoirpakQOZoA_TMeij-uI';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const DU=22;
     const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -141,24 +137,6 @@
     // CARREGAR DADOS DO SUPABASE
     // ══════════════════════════════
     async function load(){
-        if(!db){
-            document.getElementById('main-content').innerHTML=`
-                <div style="max-width:500px;margin:60px auto;background:#fff;border-radius:14px;padding:30px;box-shadow:0 2px 20px rgba(0,0,0,.1);">
-                    <h2 style="color:#E91E63;margin-bottom:16px;">⚙️ Configuração Necessária</h2>
-                    <p style="color:#555;margin-bottom:20px;font-size:13px;">Para usar localmente, informe suas chaves do Supabase:</p>
-                    <div style="margin-bottom:10px;">
-                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">URL do Supabase</label>
-                        <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
-                    </div>
-                    <div style="margin-bottom:16px;">
-                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">Chave Anon Key</label>
-                        <input type="text" id="cfg-key" placeholder="eyJhbGci..." style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
-                    </div>
-                    <button onclick="salvarConfig()" style="background:#E91E63;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔌 Conectar</button>
-                    <p style="font-size:10px;color:#999;margin-top:12px;">💡 No Vercel as chaves são configuradas automaticamente nas variáveis de ambiente.</p>
-                </div>`;
-            return;
-        }
         try{
             let r;
             r = await db.from('vendedoras').select('*');
@@ -605,19 +583,6 @@
         L=L.filter(l=>!(l.data===dt&&l.vend===vn));
         await saveL(); fechaModal(); lancamentos();
     }
-
-    // ══════════════════════════════
-    // CONFIGURAÇÃO LOCAL
-    // ══════════════════════════════
-    function salvarConfig(){
-        const url = document.getElementById('cfg-url')?.value?.trim();
-        const key = document.getElementById('cfg-key')?.value?.trim();
-        if(!url || !key){ alert('Preencha a URL e a chave.'); return; }
-        localStorage.setItem('sb_url', url);
-        localStorage.setItem('sb_key', key);
-        location.reload();
-    }
-    window.salvarConfig = salvarConfig;
 
     // Iniciar
     load();
