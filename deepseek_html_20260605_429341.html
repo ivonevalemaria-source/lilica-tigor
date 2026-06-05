@@ -73,7 +73,7 @@
         .vend-btn.ativo{background:var(--rosa);color:#fff;border-color:var(--rosa);}
         .semana-card{border:2px solid #e0e0e0;border-radius:10px;padding:12px;text-align:center;min-width:130px;}
         .loading{text-align:center;padding:40px;color:#999;}
-        @media(max-width:900px){.sidebar{width:55px;}.sidebar-logo h2,.sidebar-logo .ano,.sidebar-nav a span,.nav-label{display:none;}.sidebar-nav a{justify-content:center;padding:14px;}.main-content{margin-left:55px;width:calc(100%-55px);padding:15px;}.graficos-grid{grid-template-columns:1fr;}}
+        @media(max-width:900px){.sidebar{width:55px;}.sidebar-logo h2,.sidebar-logo .ano,.sidebar-nav a span,.nav-label{display:none;}.sidebar-nav a{justify-content:center;padding:14px;}.main-content{margin-left:55px;width:calc(100% - 55px);padding:15px;}.graficos-grid{grid-template-columns:1fr;}}
     </style>
 </head>
 <body>
@@ -81,211 +81,546 @@
     <div class="sidebar-logo"><h2>Lilica e Tigor</h2><div class="ano">Metas 2026</div></div>
     <nav class="sidebar-nav">
         <div class="nav-label">Principal</div>
-        <a class="ativo" onclick="nav('dashboard',this)">📊 Dashboard</a>
-        <a onclick="nav('lancamentos',this)">📝 Lançamentos</a>
-        <a onclick="nav('vendedoras',this)">👩‍💼 Vendedoras</a>
+        <a class="ativo" onclick="nav('dashboard',this)">📊 <span>Dashboard</span></a>
+        <a onclick="nav('lancamentos',this)">📝 <span>Lançamentos</span></a>
+        <a onclick="nav('vendedoras',this)">👩‍💼 <span>Vendedoras</span></a>
         <div class="nav-label">Painel Individual</div>
-        <a onclick="nav('painel-vend',this)">📋 Meu Painel</a>
+        <a onclick="nav('painel-vend',this)">📋 <span>Meu Painel</span></a>
         <div class="nav-label">Configurações</div>
-        <a onclick="nav('ly',this)">📅 Ajustar LY</a>
-        <a onclick="nav('config',this)">⚙️ Configurações</a>
+        <a onclick="nav('ly',this)">📅 <span>Ajustar LY</span></a>
+        <a onclick="nav('config',this)">⚙️ <span>Configurações</span></a>
     </nav>
 </aside>
-<main class="main-content" id="main-content"><div class="loading">Conectando...</div></main>
+<main class="main-content" id="main-content"><div class="loading">Conectando ao banco de dados...</div></main>
 <div class="modal-overlay" id="modal-lanc">
     <div class="modal">
         <h3 id="modal-titulo">Lançar Venda</h3>
-        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="md-data"></div><div class="form-group"><label>Vendedora</label><select id="md-vend"></select></div></div>
-        <div class="form-row"><div class="form-group"><label>Valor (R$)</label><input type="number" id="md-valor" step="0.01" min="0"></div><div class="form-group"><label>Peças</label><input type="number" id="md-pecas" min="0"></div></div>
-        <div class="form-row"><div class="form-group"><label>Atendimentos</label><input type="number" id="md-atend" min="0"></div><div class="form-group"><label>Condicional (R$)</label><input type="number" id="md-cval" step="0.01" min="0"></div></div>
-        <div class="form-row"><div class="form-group"><label>Obs</label><input type="text" id="md-obs"></div></div>
-        <div class="modal-botoes"><button class="btn btn-outline btn-sm" onclick="fechaModal()">Cancelar</button><button class="btn btn-vermelho btn-sm" id="btn-excluir" style="display:none" onclick="excluir()">🗑️ Excluir</button><button class="btn btn-rosa btn-sm" onclick="salvaModal()">💾 Salvar</button></div>
+        <div class="form-row">
+            <div class="form-group"><label>Data</label><input type="date" id="md-data"></div>
+            <div class="form-group"><label>Vendedora</label><select id="md-vend"></select></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Valor (R$)</label><input type="number" id="md-valor" step="0.01" min="0"></div>
+            <div class="form-group"><label>Peças</label><input type="number" id="md-pecas" min="0"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Atendimentos</label><input type="number" id="md-atend" min="0"></div>
+            <div class="form-group"><label>Condicional (R$)</label><input type="number" id="md-cval" step="0.01" min="0"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Obs</label><input type="text" id="md-obs"></div>
+        </div>
+        <div class="modal-botoes">
+            <button class="btn btn-outline btn-sm" onclick="fechaModal()">Cancelar</button>
+            <button class="btn btn-vermelho btn-sm" id="btn-excluir" style="display:none" onclick="excluir()">🗑️ Excluir</button>
+            <button class="btn btn-rosa btn-sm" onclick="salvaModal()">💾 Salvar</button>
+        </div>
     </div>
 </div>
 <script>
-(function(){
-    const SUPABASE_URL = 'https://seu-projeto.supabase.co';
-    const SUPABASE_ANON_KEY = 'sua-chave';
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    const DU=22, MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    // ══════════════════════════════════════════════
+    // CONFIGURAÇÃO SUPABASE
+    // Para usar localmente: preencha abaixo com suas chaves
+    // No Vercel: as variáveis são injetadas automaticamente
+    // ══════════════════════════════════════════════
+    const SUPABASE_URL = window.__env__?.SUPABASE_URL || localStorage.getItem('sb_url') || '';
+    const SUPABASE_ANON_KEY = window.__env__?.SUPABASE_ANON_KEY || localStorage.getItem('sb_key') || '';
+    const db = (SUPABASE_URL && SUPABASE_ANON_KEY)
+        ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        : null;
+
+    const DU=22;
+    const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const MNN=['01','02','03','04','05','06','07','08','09','10','11','12'];
-    let ML={min:100000,max:115000,big:138000};
     const DS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    let ML={min:100000,max:115000,big:138000};
     let V=[], L=[], LY={}, MM={}, MS={};
     let mes=new Date().getMonth(), mesLY=new Date().getMonth(), vendSel=0, mesCfg=new Date().getMonth();
 
+    // ══════════════════════════════
+    // CARREGAR DADOS DO SUPABASE
+    // ══════════════════════════════
     async function load(){
+        if(!db){
+            document.getElementById('main-content').innerHTML=`
+                <div style="max-width:500px;margin:60px auto;background:#fff;border-radius:14px;padding:30px;box-shadow:0 2px 20px rgba(0,0,0,.1);">
+                    <h2 style="color:#E91E63;margin-bottom:16px;">⚙️ Configuração Necessária</h2>
+                    <p style="color:#555;margin-bottom:20px;font-size:13px;">Para usar localmente, informe suas chaves do Supabase:</p>
+                    <div style="margin-bottom:10px;">
+                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">URL do Supabase</label>
+                        <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;">Chave Anon Key</label>
+                        <input type="text" id="cfg-key" placeholder="eyJhbGci..." style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;margin-top:4px;font-size:12px;">
+                    </div>
+                    <button onclick="salvarConfig()" style="background:#E91E63;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔌 Conectar</button>
+                    <p style="font-size:10px;color:#999;margin-top:12px;">💡 No Vercel as chaves são configuradas automaticamente nas variáveis de ambiente.</p>
+                </div>`;
+            return;
+        }
         try{
-            let r=await sb.from('vendedoras').select('*'); if(r.data&&r.data.length) V=r.data.map(v=>({nome:v.nome,meta:v.meta})); else V=[{nome:"Ana",meta:40000},{nome:"Beatriz",meta:40000},{nome:"Carla",meta:40000}];
-            r=await sb.from('lancamentos').select('*'); if(r.data) L=r.data.map(l=>({data:l.data,vend:l.vendedora,real:l.realizado,pecas:l.pecas||0,atend:l.atendimentos||0,cval:l.cond_valor||0,obs:l.obs||''}));
-            r=await sb.from('ly_diario').select('*'); if(r.data){LY={};r.data.forEach(l=>{LY[l.data]=l.valor;});}
-            r=await sb.from('metas_mensais').select('*'); if(r.data){MM={};r.data.forEach(m=>{if(!MM[m.vendedora])MM[m.vendedora]={};MM[m.vendedora][m.mes]=m.valor;});}
-            r=await sb.from('metas_semanais').select('*'); if(r.data){MS={};r.data.forEach(m=>{if(!MS[m.vendedora])MS[m.vendedora]={};MS[m.vendedora][m.chave]=m.valor;});}
-            r=await sb.from('metas_loja').select('*').limit(1); if(r.data&&r.data.length) ML={min:r.data[0].minima,max:r.data[0].maxima,big:r.data[0].big};
+            let r;
+            r = await db.from('vendedoras').select('*');
+            if(r.data && r.data.length) V = r.data.map(v=>({nome:v.nome, meta:v.meta}));
+            else V = [{nome:"Vendedora 1",meta:25000},{nome:"Vendedora 2",meta:25000},{nome:"Vendedora 3",meta:25000},{nome:"Vendedora 4",meta:25000}];
+
+            r = await db.from('lancamentos').select('*');
+            if(r.data) L = r.data.map(l=>({data:l.data, vend:l.vendedora, real:l.realizado, pecas:l.pecas||0, atend:l.atendimentos||0, cval:l.cond_valor||0, obs:l.obs||''}));
+
+            r = await db.from('ly_diario').select('*');
+            if(r.data){ LY={}; r.data.forEach(l=>{ LY[l.data]=l.valor; }); }
+
+            r = await db.from('metas_mensais').select('*');
+            if(r.data){ MM={}; r.data.forEach(m=>{ if(!MM[m.vendedora]) MM[m.vendedora]={}; MM[m.vendedora][m.mes]=m.valor; }); }
+
+            r = await db.from('metas_semanais').select('*');
+            if(r.data){ MS={}; r.data.forEach(m=>{ if(!MS[m.vendedora]) MS[m.vendedora]={}; MS[m.vendedora][m.chave]=m.valor; }); }
+
+            r = await db.from('metas_loja').select('*').limit(1);
+            if(r.data && r.data.length) ML = {min:r.data[0].minima, max:r.data[0].maxima, big:r.data[0].big};
+
             dashboard();
-        }catch(e){document.getElementById('main-content').innerHTML='<div class="alerta-erro" style="text-align:center;padding:40px;">Erro: '+e.message+'</div>';}
+        } catch(e){
+            document.getElementById('main-content').innerHTML =
+                `<div class="alerta alerta-erro" style="text-align:center;padding:40px;">
+                    ❌ Erro de conexão com o banco de dados.<br>
+                    <small>${e.message}</small><br><br>
+                    <small>Verifique se as variáveis SUPABASE_URL e SUPABASE_ANON_KEY estão configuradas no Vercel.</small>
+                </div>`;
+        }
     }
 
-    function fm(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
-    function metaMes(nome,m){let c=MNN[m];if(MM[nome]&&MM[nome][c])return MM[nome][c];let v=V.find(x=>x.nome===nome);return v?v.meta:0;}
-    function metaSem(nome,m,s){let c=MNN[m]+'_S'+s;if(MS[nome]&&MS[nome][c])return MS[nome][c];let ns=semanas(m,2026).length;return ns>0?metaMes(nome,m)/ns:0;}
-    function diasUteis(m,a){let r=[],td=new Date(a,m+1,0).getDate();for(let d=1;d<=td;d++){let dt=new Date(a,m,d),ds=dt.getDay();if(ds!==0&&ds!==6)r.push({dia:d,data:`${a}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,ds});}return r;}
-    function semanas(m,a){let d=diasUteis(m,a),r=[],t=[];d.forEach((x,i)=>{t.push(x);if(x.ds===5||i===d.length-1){if(t.length)r.push([...t]);t=[];}});if(t.length)r.push(t);return r;}
-    function realData(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.real||0),0);}
-    function pecData(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.pecas||0),0);}
-    function atendData(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.atend||0),0);}
-    function condData(dt){return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.cval||0),0);}
-    function realMes(m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0);}
-    function realVendMes(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0);}
-    function realVendSem(n,m,a,s){let sm=semanas(m,a);if(s<1||s>sm.length)return 0;return sm[s-1].reduce((s,d)=>s+(L.filter(l=>l.vend===n&&l.data===d.data).reduce((ss,l)=>ss+(l.real||0),0)),0);}
-    function pecVendMes(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.pecas||0),0);}
-    function atendVendMes(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.atend||0),0);}
-    function condVendMes(n,m,a){let ms=String(m+1).padStart(2,'0');return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.cval||0),0);}
-    function lyDia(dt){return LY[dt]||0;}
-    function lyMes(m,a){return diasUteis(m,a).reduce((s,d)=>s+lyDia(d.data),0);}
+    // ══════════════════════════════
+    // SALVAR DADOS NO SUPABASE
+    // ══════════════════════════════
+    async function saveV(){
+        await db.from('vendedoras').delete().neq('id',0);
+        if(V.length) await db.from('vendedoras').insert(V.map(v=>({nome:v.nome,meta:v.meta})));
+    }
+    async function saveL(){
+        await db.from('lancamentos').delete().neq('id',0);
+        if(L.length) await db.from('lancamentos').insert(L.map(l=>({data:l.data,vendedora:l.vend,realizado:l.real,pecas:l.pecas,atendimentos:l.atend,cond_valor:l.cval,obs:l.obs})));
+    }
+    async function saveLY(){
+        await db.from('ly_diario').delete().neq('id',0);
+        let b=Object.entries(LY).map(([k,v])=>({data:k,valor:v}));
+        if(b.length) await db.from('ly_diario').insert(b);
+    }
+    async function saveMM(){
+        await db.from('metas_mensais').delete().neq('id',0);
+        let b=[];
+        Object.entries(MM).forEach(([v,meses])=>{ Object.entries(meses).forEach(([m,val])=>{ b.push({vendedora:v,mes:m,valor:val}); }); });
+        if(b.length) await db.from('metas_mensais').insert(b);
+    }
+    async function saveMS(){
+        await db.from('metas_semanais').delete().neq('id',0);
+        let b=[];
+        Object.entries(MS).forEach(([v,sems])=>{ Object.entries(sems).forEach(([c,val])=>{ b.push({vendedora:v,chave:c,valor:val}); }); });
+        if(b.length) await db.from('metas_semanais').insert(b);
+    }
+    async function saveML(){
+        await db.from('metas_loja').delete().neq('id',0);
+        await db.from('metas_loja').insert({minima:ML.min,maxima:ML.max,big:ML.big});
+    }
 
-    async function saveV(){await sb.from('vendedoras').delete().neq('id',0);if(V.length)await sb.from('vendedoras').insert(V.map(v=>({nome:v.nome,meta:v.meta})));}
-    async function saveL(){await sb.from('lancamentos').delete().neq('id',0);if(L.length){await sb.from('lancamentos').insert(L.map(l=>({data:l.data,vendedora:l.vend,realizado:l.real,pecas:l.pecas,atendimentos:l.atend,cond_valor:l.cval,obs:l.obs})));}}
-    async function saveLY(){await sb.from('ly_diario').delete().neq('id',0);let b=Object.entries(LY).map(([k,v])=>({data:k,valor:v}));if(b.length)await sb.from('ly_diario').insert(b);}
-    async function saveMM(){await sb.from('metas_mensais').delete().neq('id',0);let b=[];Object.entries(MM).forEach(([v,meses])=>{Object.entries(meses).forEach(([m,val])=>{b.push({vendedora:v,mes:m,valor:val});});});if(b.length)await sb.from('metas_mensais').insert(b);}
-    async function saveMS(){await sb.from('metas_semanais').delete().neq('id',0);let b=[];Object.entries(MS).forEach(([v,sems])=>{Object.entries(sems).forEach(([c,val])=>{b.push({vendedora:v,chave:c,valor:val});});});if(b.length)await sb.from('metas_semanais').insert(b);}
-    async function saveML(){await sb.from('metas_loja').delete().neq('id',0);await sb.from('metas_loja').insert({minima:ML.min,maxima:ML.max,big:ML.big});}
+    // ══════════════════════════════
+    // FUNÇÕES AUXILIARES
+    // ══════════════════════════════
+    function fm(v){ return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+    function metaMes(nome,m){ let c=MNN[m]; if(MM[nome]&&MM[nome][c]) return MM[nome][c]; let v=V.find(x=>x.nome===nome); return v?v.meta:0; }
+    function metaSem(nome,m,s){ let c=MNN[m]+'_S'+s; if(MS[nome]&&MS[nome][c]) return MS[nome][c]; let ns=semanas(m,2026).length; return ns>0?metaMes(nome,m)/ns:0; }
+    function diasUteis(m,a){ let r=[],td=new Date(a,m+1,0).getDate(); for(let d=1;d<=td;d++){ let dt=new Date(a,m,d),ds=dt.getDay(); if(ds!==0&&ds!==6) r.push({dia:d,data:`${a}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,ds}); } return r; }
+    function semanas(m,a){ let d=diasUteis(m,a),r=[],t=[]; d.forEach((x,i)=>{ t.push(x); if(x.ds===5||i===d.length-1){ if(t.length) r.push([...t]); t=[]; } }); if(t.length) r.push(t); return r; }
+    function realData(dt){ return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.real||0),0); }
+    function pecData(dt){ return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.pecas||0),0); }
+    function atendData(dt){ return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.atend||0),0); }
+    function condData(dt){ return L.filter(l=>l.data===dt).reduce((s,l)=>s+(l.cval||0),0); }
+    function realMes(m,a){ let ms=String(m+1).padStart(2,'0'); return L.filter(l=>l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0); }
+    function realVendMes(n,m,a){ let ms=String(m+1).padStart(2,'0'); return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.real||0),0); }
+    function realVendSem(n,m,a,s){ let sm=semanas(m,a); if(s<1||s>sm.length) return 0; return sm[s-1].reduce((acc,d)=>acc+(L.filter(l=>l.vend===n&&l.data===d.data).reduce((ss,l)=>ss+(l.real||0),0)),0); }
+    function pecVendMes(n,m,a){ let ms=String(m+1).padStart(2,'0'); return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.pecas||0),0); }
+    function atendVendMes(n,m,a){ let ms=String(m+1).padStart(2,'0'); return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.atend||0),0); }
+    function condVendMes(n,m,a){ let ms=String(m+1).padStart(2,'0'); return L.filter(l=>l.vend===n&&l.data.startsWith(`${a}-${ms}`)).reduce((s,l)=>s+(l.cval||0),0); }
+    function lyDia(dt){ return LY[dt]||0; }
+    function lyMes(m,a){ return diasUteis(m,a).reduce((s,d)=>s+lyDia(d.data),0); }
 
+    // ══════════════════════════════
+    // NAVEGAÇÃO
+    // ══════════════════════════════
     function nav(p,el){
         document.querySelectorAll('.sidebar-nav a').forEach(a=>a.classList.remove('ativo'));
-        if(el)el.classList.add('ativo');
+        if(el) el.classList.add('ativo');
         document.getElementById('main-content').innerHTML='<p class="loading">Carregando...</p>';
-        setTimeout(()=>{if(p==='dashboard')dashboard();else if(p==='lancamentos')lancamentos();else if(p==='vendedoras')vendedoras();else if(p==='painel-vend')painelVend();else if(p==='ly')ajusteLY();else if(p==='config')config();},50);
+        setTimeout(()=>{
+            if(p==='dashboard') dashboard();
+            else if(p==='lancamentos') lancamentos();
+            else if(p==='vendedoras') vendedoras();
+            else if(p==='painel-vend') painelVend();
+            else if(p==='ly') ajusteLY();
+            else if(p==='config') config();
+        },50);
     }
 
+    // ══════════════════════════════
+    // DASHBOARD
+    // ══════════════════════════════
     function dashboard(){
+        if(!V.length && db){
+            document.getElementById('main-content').innerHTML='<div class="loading">Carregando dados...</div>';
+            setTimeout(()=>{ if(V.length) dashboard(); },1000);
+            return;
+        }
         let rm=realMes(mes,2026),pmin=Math.min((rm/ML.min)*100,100),pmax=Math.min((rm/ML.max)*100,100),pbig=Math.min((rm/ML.big)*100,100),lyv=lyMes(mes,2026),vly=lyv>0?((rm-lyv)/lyv)*100:0;
-        document.getElementById('main-content').innerHTML=
-        `<div class="page-header"><h1>Dashboard • ${MN[mes]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};dashboard()">${m.substring(0,3)}</button>`).join('')}</div></div>
-        <div class="cards-grid">
-        <div class="card-meta" style="border-top-color:#ff9800"><div class="card-titulo">Meta Mínima</div><div class="card-valor">${fm(ML.min)}</div><div class="card-sub">${fm(rm)} (${pmin.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmin}%;background:#ff9800"></div></div></div>
-        <div class="card-meta" style="border-top-color:#2196F3"><div class="card-titulo">Meta Máxima</div><div class="card-valor">${fm(ML.max)}</div><div class="card-sub">${fm(rm)} (${pmax.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmax}%;background:#2196F3"></div></div></div>
-        <div class="card-meta" style="border-top-color:var(--rosa)"><div class="card-titulo">Meta BIG</div><div class="card-valor">${fm(ML.big)}</div><div class="card-sub">${fm(rm)} (${pbig.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pbig}%;background:var(--rosa)"></div></div></div>
-        <div class="card-meta" style="border-top-color:#4CAF50"><div class="card-titulo">LY 2025</div><div class="card-valor">${fm(lyv)}</div><div class="card-sub" style="color:${vly>=0?'green':'red'}">${vly>=0?'+':''}${vly.toFixed(1)}%</div></div>
+        document.getElementById('main-content').innerHTML=`
+        <div class="page-header">
+            <h1>Dashboard • ${MN[mes]} 2026</h1>
+            <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};dashboard()">${m.substring(0,3)}</button>`).join('')}</div>
         </div>
-        <div class="graficos-grid"><div class="grafico-card"><h4>Realizado Diário</h4><canvas id="g1"></canvas></div><div class="grafico-card"><h4>Por Vendedora</h4><canvas id="g2"></canvas></div><div class="grafico-card full"><h4>Semanas</h4><canvas id="g3"></canvas></div></div>`;
+        <div class="cards-grid">
+            <div class="card-meta" style="border-top-color:#ff9800"><div class="card-titulo">Meta Mínima</div><div class="card-valor">${fm(ML.min)}</div><div class="card-sub">${fm(rm)} (${pmin.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmin}%;background:#ff9800"></div></div></div>
+            <div class="card-meta" style="border-top-color:#2196F3"><div class="card-titulo">Meta Máxima</div><div class="card-valor">${fm(ML.max)}</div><div class="card-sub">${fm(rm)} (${pmax.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pmax}%;background:#2196F3"></div></div></div>
+            <div class="card-meta" style="border-top-color:var(--rosa)"><div class="card-titulo">Meta BIG</div><div class="card-valor">${fm(ML.big)}</div><div class="card-sub">${fm(rm)} (${pbig.toFixed(1)}%)</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${pbig}%;background:var(--rosa)"></div></div></div>
+            <div class="card-meta" style="border-top-color:#4CAF50"><div class="card-titulo">LY 2025</div><div class="card-valor">${fm(lyv)}</div><div class="card-sub" style="color:${vly>=0?'green':'red'}">${vly>=0?'+':''}${vly.toFixed(1)}%</div></div>
+        </div>
+        <div class="graficos-grid">
+            <div class="grafico-card"><h4>Realizado Diário</h4><canvas id="g1"></canvas></div>
+            <div class="grafico-card"><h4>Por Vendedora</h4><canvas id="g2"></canvas></div>
+            <div class="grafico-card full"><h4>Semanas</h4><canvas id="g3"></canvas></div>
+        </div>`;
         setTimeout(()=>{
-            let d=diasUteis(mes,2026),mt=V.reduce((s,v)=>s+metaMes(v.nome,mes)/DU,0);
-            new Chart(document.getElementById('g1'),{type:'bar',data:{labels:d.map(x=>x.dia),datasets:[{label:'Realizado',data:d.map(x=>realData(x.data)),backgroundColor:'#E91E63',borderRadius:4},{label:'Meta',data:d.map(()=>mt),type:'line',borderColor:'#F5C518',borderWidth:2,pointRadius:2,fill:false},{label:'LY',data:d.map(x=>lyDia(x.data)),type:'line',borderColor:'#4CAF50',borderWidth:2,pointRadius:2,fill:false,borderDash:[5,5]}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
-            new Chart(document.getElementById('g2'),{type:'bar',data:{labels:V.map(v=>v.nome),datasets:[{label:'Realizado',data:V.map(v=>realVendMes(v.nome,mes,2026)),backgroundColor:'#E91E63',borderRadius:4},{label:'Meta',data:V.map(v=>metaMes(v.nome,mes)),backgroundColor:'#ddd',borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
-            let s=semanas(mes,2026);new Chart(document.getElementById('g3'),{type:'bar',data:{labels:s.map((_,i)=>'Sem '+(i+1)),datasets:[{label:'Realizado',data:s.map(sm=>sm.reduce((s,d)=>s+realData(d.data),0)),backgroundColor:'#E91E63',borderRadius:6},{label:'Meta',data:s.map(sm=>sm.length*mt),backgroundColor:'#F5C518',borderRadius:6}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
+            if(!V.length) return;
+            let d=diasUteis(mes,2026), mt=V.reduce((s,v)=>s+metaMes(v.nome,mes)/DU,0);
+            new Chart(document.getElementById('g1'),{type:'bar',data:{labels:d.map(x=>x.dia),datasets:[
+                {label:'Realizado',data:d.map(x=>realData(x.data)),backgroundColor:'#E91E63',borderRadius:4},
+                {label:'Meta',data:d.map(()=>mt),type:'line',borderColor:'#F5C518',borderWidth:2,pointRadius:2,fill:false},
+                {label:'LY',data:d.map(x=>lyDia(x.data)),type:'line',borderColor:'#4CAF50',borderWidth:2,pointRadius:2,fill:false,borderDash:[5,5]}
+            ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
+            new Chart(document.getElementById('g2'),{type:'bar',data:{labels:V.map(v=>v.nome),datasets:[
+                {label:'Realizado',data:V.map(v=>realVendMes(v.nome,mes,2026)),backgroundColor:'#E91E63',borderRadius:4},
+                {label:'Meta',data:V.map(v=>metaMes(v.nome,mes)),backgroundColor:'#ddd',borderRadius:4}
+            ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
+            let s=semanas(mes,2026);
+            new Chart(document.getElementById('g3'),{type:'bar',data:{labels:s.map((_,i)=>'Sem '+(i+1)),datasets:[
+                {label:'Realizado',data:s.map(sm=>sm.reduce((acc,d)=>acc+realData(d.data),0)),backgroundColor:'#E91E63',borderRadius:6},
+                {label:'Meta',data:s.map(sm=>sm.length*mt),backgroundColor:'#F5C518',borderRadius:6}
+            ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>fm(v)}}}}});
         },200);
     }
 
+    // ══════════════════════════════
+    // LANÇAMENTOS
+    // ══════════════════════════════
     function lancamentos(){
-        let d=diasUteis(mes,2026),s=semanas(mes,2026),mt=V.reduce((s,v)=>s+metaMes(v.nome,mes)/DU,0),tr=0,tp=0,ta=0,tcv=0;
-        let h=`<div class="page-header"><h1>Controle Diário • ${MN[mes]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};lancamentos()">${m.substring(0,3)}</button>`).join('')}</div></div>
-        <div class="bloco"><h3>Lançamentos</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Peças</th><th>Atend</th><th>Ticket</th><th>Cond.R$</th><th>LY</th><th>vsLY</th><th>Ação</th></tr></thead><tbody>`;
-        d.forEach(x=>{let r=realData(x.data),p=pecData(x.data),a=atendData(x.data),cv=condData(x.data),gap=r-mt,perc=mt>0?(r/mt)*100:0,tk=a>0?r/a:0,ly=lyDia(x.data),vs=ly>0?((r-ly)/ly)*100:0;tr+=r;tp+=p;ta+=a;tcv+=cv;
-        h+=`<tr><td><b>${x.dia}</b></td><td>${fm(mt)}</td><td>${fm(r)}</td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc.toFixed(0)}%</span></td><td>${p}</td><td>${a}</td><td>${fm(tk)}</td><td>${fm(cv)}</td><td>${fm(ly)}</td><td class="${vs>=0?'positivo':'negativo'}">${vs.toFixed(1)}%</td><td><button class="btn btn-rosa btn-sm" onclick="abreModal('${x.data}')">✏️</button></td></tr>`;});
-        h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mt*d.length)}</td><td>${fm(tr)}</td><td class="${tr-(mt*d.length)>=0?'positivo':'negativo'}">${fm(tr-(mt*d.length))}</td><td>${mt>0?(tr/(mt*d.length)*100).toFixed(1):0}%</td><td>${tp}</td><td>${ta}</td><td>${fm(ta>0?tr/ta:0)}</td><td>${fm(tcv)}</td><td colspan="3"></td></tr></tbody></table></div></div>
-        <div class="bloco"><h3>Semanas</h3><div class="tabela-scroll"><table><thead><tr><th>Sem</th><th>Dias</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th></tr></thead><tbody>`;
-        s.forEach((sm,i)=>{let ms=sm.length*mt,rs=sm.reduce((s,x)=>s+realData(x.data),0);h+=`<tr><td><b>Sem ${i+1}</b></td><td>${sm[0].dia}-${sm[sm.length-1].dia}</td><td>${fm(ms)}</td><td>${fm(rs)}</td><td class="${rs>=ms?'positivo':'negativo'}">${fm(rs-ms)}</td><td>${ms>0?(rs/ms*100).toFixed(1):0}%</td></tr>`;});
-        h+=`</tbody></table></div></div>`;document.getElementById('main-content').innerHTML=h;
-    }
-
-    function vendedoras(){
-        let d=diasUteis(mes,2026);
-        let h=`<div class="page-header"><h1>Painel Vendedoras • ${MN[mes]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};vendedoras()">${m.substring(0,3)}</button>`).join('')}</div></div>`;
-        V.forEach(v=>{let mtd=metaMes(v.nome,mes)/DU,tr=0;h+=`<div class="bloco"><h3>${v.nome} • Meta: ${fm(metaMes(v.nome,mes))} | Dia: ${fm(mtd)}</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Status</th></tr></thead><tbody>`;
-        d.forEach(x=>{let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,gap=r-mtd,perc=mtd>0?(r/mtd)*100:0;tr+=r;h+=`<tr><td>${x.dia}</td><td>${fm(mtd)}</td><td><input type="number" value="${r>0?r:''}" onchange="lv('${v.nome}','${x.data}',this.value)" placeholder="0" step="0.01" min="0"></td><td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td>${perc.toFixed(0)}%</td><td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc>=100?'Atingiu':'Não'}</span></td></tr>`;});
-        let mv=metaMes(v.nome,mes),pt=mv>0?(tr/mv)*100:0;h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mv)}</td><td>${fm(tr)}</td><td class="${tr>=mv?'positivo':'negativo'}">${fm(tr-mv)}</td><td>${pt.toFixed(1)}%</td><td><span class="tag ${pt>=100?'tag-verde':'tag-amarelo'}">${pt.toFixed(1)}%</span></td></tr></tbody></table></div></div>`;});
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
+        let d=diasUteis(mes,2026),s=semanas(mes,2026),mt=V.reduce((acc,v)=>acc+metaMes(v.nome,mes)/DU,0),tr=0,tp=0,ta=0,tcv=0;
+        let h=`<div class="page-header"><h1>Controle Diário • ${MN[mes]} 2026</h1>
+        <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};lancamentos()">${m.substring(0,3)}</button>`).join('')}</div></div>
+        <div class="bloco"><h3>Lançamentos</h3><div class="tabela-scroll"><table>
+        <thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Peças</th><th>Atend</th><th>Ticket</th><th>Cond.R$</th><th>LY</th><th>vs LY</th><th>Ação</th></tr></thead><tbody>`;
+        d.forEach(x=>{
+            let r=realData(x.data),p=pecData(x.data),a=atendData(x.data),cv=condData(x.data),gap=r-mt,perc=mt>0?(r/mt)*100:0,tk=a>0?r/a:0,ly=lyDia(x.data),vs=ly>0?((r-ly)/ly)*100:0;
+            tr+=r; tp+=p; ta+=a; tcv+=cv;
+            h+=`<tr><td><b>${x.dia}</b></td><td>${fm(mt)}</td><td>${fm(r)}</td>
+            <td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td>
+            <td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc.toFixed(0)}%</span></td>
+            <td>${p}</td><td>${a}</td><td>${fm(tk)}</td><td>${fm(cv)}</td><td>${fm(ly)}</td>
+            <td class="${vs>=0?'positivo':'negativo'}">${vs.toFixed(1)}%</td>
+            <td><button class="btn btn-rosa btn-sm" onclick="abreModal('${x.data}')">✏️</button></td></tr>`;
+        });
+        h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mt*d.length)}</td><td>${fm(tr)}</td>
+        <td class="${tr-(mt*d.length)>=0?'positivo':'negativo'}">${fm(tr-(mt*d.length))}</td>
+        <td>${mt>0?(tr/(mt*d.length)*100).toFixed(1):0}%</td>
+        <td>${tp}</td><td>${ta}</td><td>${fm(ta>0?tr/ta:0)}</td><td>${fm(tcv)}</td><td colspan="3"></td></tr>
+        </tbody></table></div></div>
+        <div class="bloco"><h3>Semanas</h3><div class="tabela-scroll"><table>
+        <thead><tr><th>Sem</th><th>Dias</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th></tr></thead><tbody>`;
+        s.forEach((sm,i)=>{
+            let ms=sm.length*mt, rs=sm.reduce((acc,x)=>acc+realData(x.data),0);
+            h+=`<tr><td><b>Sem ${i+1}</b></td><td>${sm[0].dia}-${sm[sm.length-1].dia}</td><td>${fm(ms)}</td><td>${fm(rs)}</td>
+            <td class="${rs>=ms?'positivo':'negativo'}">${fm(rs-ms)}</td><td>${ms>0?(rs/ms*100).toFixed(1):0}%</td></tr>`;
+        });
+        h+=`</tbody></table></div></div>`;
         document.getElementById('main-content').innerHTML=h;
     }
-    async function lv(vn,dt,vl){let v=parseFloat(vl);if(isNaN(v)||v<0)return;L=L.filter(l=>!(l.data===dt&&l.vend===vn));if(v>0)L.push({data:dt,vend:vn,real:v,pecas:0,atend:0,cval:0,obs:''});await saveL();vendedoras();}
 
+    // ══════════════════════════════
+    // VENDEDORAS
+    // ══════════════════════════════
+    function vendedoras(){
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
+        let d=diasUteis(mes,2026);
+        let h=`<div class="page-header"><h1>Painel Vendedoras • ${MN[mes]} 2026</h1>
+        <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};vendedoras()">${m.substring(0,3)}</button>`).join('')}</div></div>`;
+        V.forEach(v=>{
+            let mtd=metaMes(v.nome,mes)/DU, tr=0;
+            h+=`<div class="bloco"><h3>${v.nome} • Meta: ${fm(metaMes(v.nome,mes))} | Dia: ${fm(mtd)}</h3>
+            <div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Meta</th><th>Realizado</th><th>Gap</th><th>%</th><th>Status</th></tr></thead><tbody>`;
+            d.forEach(x=>{
+                let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,gap=r-mtd,perc=mtd>0?(r/mtd)*100:0;
+                tr+=r;
+                h+=`<tr><td>${x.dia}</td><td>${fm(mtd)}</td>
+                <td><input type="number" value="${r>0?r:''}" onchange="lv('${v.nome}','${x.data}',this.value)" placeholder="0" step="0.01" min="0"></td>
+                <td class="${gap>=0?'positivo':'negativo'}">${fm(gap)}</td><td>${perc.toFixed(0)}%</td>
+                <td><span class="tag ${perc>=100?'tag-verde':perc>=90?'tag-amarelo':'tag-vermelho'}">${perc>=100?'✅ Atingiu':'Não'}</span></td></tr>`;
+            });
+            let mv=metaMes(v.nome,mes),pt=mv>0?(tr/mv)*100:0;
+            h+=`<tr class="linha-total"><td><b>TOTAL</b></td><td>${fm(mv)}</td><td>${fm(tr)}</td>
+            <td class="${tr>=mv?'positivo':'negativo'}">${fm(tr-mv)}</td><td>${pt.toFixed(1)}%</td>
+            <td><span class="tag ${pt>=100?'tag-verde':'tag-amarelo'}">${pt.toFixed(1)}%</span></td></tr>
+            </tbody></table></div></div>`;
+        });
+        document.getElementById('main-content').innerHTML=h;
+    }
+    async function lv(vn,dt,vl){
+        let v=parseFloat(vl);
+        if(isNaN(v)||v<0) return;
+        L=L.filter(l=>!(l.data===dt&&l.vend===vn));
+        if(v>0) L.push({data:dt,vend:vn,real:v,pecas:0,atend:0,cval:0,obs:''});
+        await saveL();
+        vendedoras();
+    }
+
+    // ══════════════════════════════
+    // MEU PAINEL
+    // ══════════════════════════════
     function painelVend(){
+        if(!V.length){ document.getElementById('main-content').innerHTML='<div class="loading">Nenhuma vendedora cadastrada. Acesse <b>Configurações</b> para adicionar.</div>'; return; }
+        if(vendSel >= V.length) vendSel = 0;
         let v=V[vendSel],mv=metaMes(v.nome,mes),rm=realVendMes(v.nome,mes,2026),pm=pecVendMes(v.nome,mes,2026),am=atendVendMes(v.nome,mes,2026),cmv=condVendMes(v.nome,mes,2026),sm=semanas(mes,2026);
         let pa=am>0?pm/am:0,tm=am>0?rm/am:0,tx=am>0?(pm/am)*100:0,perc=mv>0?(rm/mv)*100:0;
-        let h=`<div class="page-header"><h1>Meu Painel • ${MN[mes]} 2026</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};painelVend()">${m.substring(0,3)}</button>`).join('')}</div></div>
+        let h=`<div class="page-header"><h1>Meu Painel • ${MN[mes]} 2026</h1>
+        <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mes?'ativo':''}" onclick="mes=${i};painelVend()">${m.substring(0,3)}</button>`).join('')}</div></div>
         <div class="vendedora-selector">${V.map((x,i)=>`<button class="vend-btn ${i===vendSel?'ativo':''}" onclick="vendSel=${i};painelVend()">${x.nome}</button>`).join('')}</div>
         <div class="cards-grid">
-        <div class="card-meta" style="border-top-color:#9C27B0"><div class="card-titulo">Peças</div><div class="card-valor">${pm}</div><div class="card-sub">PA: ${pa.toFixed(1)}</div></div>
-        <div class="card-meta" style="border-top-color:#00BCD4"><div class="card-titulo">Atendimentos</div><div class="card-valor">${am}</div><div class="card-sub">Tx Conv: ${tx.toFixed(1)}%</div></div>
-        <div class="card-meta" style="border-top-color:var(--rosa)"><div class="card-titulo">Valor Total</div><div class="card-valor">${fm(rm)}</div><div class="card-sub">Ticket: ${fm(tm)}</div></div>
-        <div class="card-meta" style="border-top-color:#4CAF50"><div class="card-titulo">% Meta</div><div class="card-valor">${perc.toFixed(1)}%</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${Math.min(perc,100)}%;background:${perc>=100?'#4CAF50':perc>=90?'#ff9800':'#f44336'}"></div></div></div>
-        <div class="card-meta" style="border-top-color:#FF5722"><div class="card-titulo">Condicional</div><div class="card-valor">${fm(cmv)}</div></div>
-        <div class="card-meta" style="border-top-color:#607D8B"><div class="card-titulo">Meta Mensal</div><div class="card-valor">${fm(mv)}</div><div class="card-sub">Falta: ${fm(Math.max(0,mv-rm))}</div></div>
+            <div class="card-meta" style="border-top-color:#9C27B0"><div class="card-titulo">Peças</div><div class="card-valor">${pm}</div><div class="card-sub">PA: ${pa.toFixed(1)}</div></div>
+            <div class="card-meta" style="border-top-color:#00BCD4"><div class="card-titulo">Atendimentos</div><div class="card-valor">${am}</div><div class="card-sub">Tx Conv: ${tx.toFixed(1)}%</div></div>
+            <div class="card-meta" style="border-top-color:var(--rosa)"><div class="card-titulo">Valor Total</div><div class="card-valor">${fm(rm)}</div><div class="card-sub">Ticket: ${fm(tm)}</div></div>
+            <div class="card-meta" style="border-top-color:#4CAF50"><div class="card-titulo">% Meta</div><div class="card-valor">${perc.toFixed(1)}%</div><div class="progresso-bar"><div class="progresso-preenchido" style="width:${Math.min(perc,100)}%;background:${perc>=100?'#4CAF50':perc>=90?'#ff9800':'#f44336'}"></div></div></div>
+            <div class="card-meta" style="border-top-color:#FF5722"><div class="card-titulo">Condicional</div><div class="card-valor">${fm(cmv)}</div></div>
+            <div class="card-meta" style="border-top-color:#607D8B"><div class="card-titulo">Meta Mensal</div><div class="card-valor">${fm(mv)}</div><div class="card-sub">Falta: ${fm(Math.max(0,mv-rm))}</div></div>
         </div>
         <div class="bloco"><h3>Metas Semanais</h3><div style="display:flex;gap:12px;flex-wrap:wrap">`;
-        sm.forEach((x,i)=>{let ms=metaSem(v.nome,mes,i+1),rs=realVendSem(v.nome,mes,2026,i+1),falta=ms-rs,ps=ms>0?(rs/ms)*100:0;
-        h+=`<div class="semana-card" style="flex:1;min-width:140px"><div style="font-size:10px;font-weight:700;color:#999">Semana ${i+1}</div><div style="font-size:10px;color:#888">${x[0].dia}-${x[x.length-1].dia}</div><div style="font-size:18px;font-weight:700;margin-top:6px">${fm(rs)}</div><div style="font-size:11px;color:#888">Meta: ${fm(ms)}</div><div style="font-size:10px;font-weight:600;color:${falta<=0?'green':'red'};margin-top:4px">${falta<=0?'✅ Atingida!':'Falta: '+fm(falta)}</div><div class="progresso-bar" style="margin-top:6px"><div class="progresso-preenchido" style="width:${Math.min(ps,100)}%;background:${ps>=100?'#4CAF50':ps>=90?'#ff9800':'#f44336'}"></div></div><div style="font-size:9px;color:#888;margin-top:3px">${ps.toFixed(1)}%</div></div>`;});
-        h+=`</div></div><div class="bloco"><h3>Histórico Diário</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Realizado</th><th>Peças</th><th>Atend</th><th>PA</th><th>Ticket</th><th>TxConv</th><th>Cond.R$</th><th>Meta</th><th>%</th><th>Status</th></tr></thead><tbody>`;
+        sm.forEach((x,i)=>{
+            let ms=metaSem(v.nome,mes,i+1),rs=realVendSem(v.nome,mes,2026,i+1),falta=ms-rs,ps=ms>0?(rs/ms)*100:0;
+            h+=`<div class="semana-card" style="flex:1;min-width:140px">
+                <div style="font-size:10px;font-weight:700;color:#999">Semana ${i+1}</div>
+                <div style="font-size:10px;color:#888">${x[0].dia}-${x[x.length-1].dia}</div>
+                <div style="font-size:18px;font-weight:700;margin-top:6px">${fm(rs)}</div>
+                <div style="font-size:11px;color:#888">Meta: ${fm(ms)}</div>
+                <div style="font-size:10px;font-weight:600;color:${falta<=0?'green':'red'};margin-top:4px">${falta<=0?'✅ Atingida!':'Falta: '+fm(falta)}</div>
+                <div class="progresso-bar" style="margin-top:6px"><div class="progresso-preenchido" style="width:${Math.min(ps,100)}%;background:${ps>=100?'#4CAF50':ps>=90?'#ff9800':'#f44336'}"></div></div>
+                <div style="font-size:9px;color:#888;margin-top:3px">${ps.toFixed(1)}%</div>
+            </div>`;
+        });
+        h+=`</div></div><div class="bloco"><h3>Histórico Diário</h3><div class="tabela-scroll"><table>
+        <thead><tr><th>Dia</th><th>Realizado</th><th>Peças</th><th>Atend</th><th>PA</th><th>Ticket</th><th>Tx Conv</th><th>Cond.R$</th><th>Meta</th><th>%</th><th>Status</th></tr></thead><tbody>`;
         let dias=diasUteis(mes,2026),mtd=mv/DU;
-        dias.forEach(x=>{let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,p=lc?lc.pecas||0:0,a=lc?lc.atend||0:0,cv=lc?lc.cval||0:0,paD=a>0?p/a:0,tkD=a>0?r/a:0,txD=a>0?(p/a)*100:0,pd=mtd>0?(r/mtd)*100:0;
-        h+=`<tr><td>${x.dia}</td><td>${fm(r)}</td><td>${p}</td><td>${a}</td><td>${paD.toFixed(1)}</td><td>${fm(tkD)}</td><td>${txD.toFixed(1)}%</td><td>${fm(cv)}</td><td>${fm(mtd)}</td><td>${pd.toFixed(0)}%</td><td><span class="tag ${pd>=100?'tag-verde':pd>=90?'tag-amarelo':'tag-vermelho'}">${pd>=100?'Atingiu':'Não'}</span></td></tr>`;});
-        h+=`</tbody></table></div></div>`;document.getElementById('main-content').innerHTML=h;
+        dias.forEach(x=>{
+            let lc=L.find(l=>l.data===x.data&&l.vend===v.nome),r=lc?lc.real||0:0,p=lc?lc.pecas||0:0,a=lc?lc.atend||0:0,cv=lc?lc.cval||0:0;
+            let paD=a>0?p/a:0,tkD=a>0?r/a:0,txD=a>0?(p/a)*100:0,pd=mtd>0?(r/mtd)*100:0;
+            h+=`<tr><td>${x.dia}</td><td>${fm(r)}</td><td>${p}</td><td>${a}</td>
+            <td>${paD.toFixed(1)}</td><td>${fm(tkD)}</td><td>${txD.toFixed(1)}%</td><td>${fm(cv)}</td>
+            <td>${fm(mtd)}</td><td>${pd.toFixed(0)}%</td>
+            <td><span class="tag ${pd>=100?'tag-verde':pd>=90?'tag-amarelo':'tag-vermelho'}">${pd>=100?'✅ Atingiu':'Não'}</span></td></tr>`;
+        });
+        h+=`</tbody></table></div></div>`;
+        document.getElementById('main-content').innerHTML=h;
     }
 
+    // ══════════════════════════════
+    // AJUSTAR LY
+    // ══════════════════════════════
     function ajusteLY(){
         let d=diasUteis(mesLY,2025);
-        let h=`<div class="page-header"><h1>Ajustar LY 2025</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mesLY?'ativo':''}" onclick="mesLY=${i};ajusteLY()">${m.substring(0,3)}</button>`).join('')}</div></div>
-        <div class="bloco"><h3>${MN[mesLY]} 2025</h3><div class="tabela-scroll"><table><thead><tr><th>Dia</th><th>Data</th><th>Dia</th><th>LY (R$)</th></tr></thead><tbody>`;
-        d.forEach(x=>{let c=x.data.replace('2025-','2026-'),v=LY[c]||'';h+=`<tr><td><b>${x.dia}</b></td><td>${x.dia}/${String(mesLY+1).padStart(2,'0')}/2025</td><td>${DS[x.ds]}</td><td><input type="number" id="ly-${c}" value="${v}" step="0.01" min="0" style="width:120px"></td></tr>`;});
-        h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:15px" onclick="saveLY2()">💾 Salvar</button><div id="msg-ly"></div></div>`;
+        let h=`<div class="page-header"><h1>Ajustar LY 2025</h1>
+        <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mesLY?'ativo':''}" onclick="mesLY=${i};ajusteLY()">${m.substring(0,3)}</button>`).join('')}</div></div>
+        <div class="bloco"><h3>${MN[mesLY]} 2025</h3><div class="tabela-scroll"><table>
+        <thead><tr><th>Dia</th><th>Data</th><th>Dia Sem.</th><th>LY (R$)</th></tr></thead><tbody>`;
+        d.forEach(x=>{
+            let c=x.data.replace('2025-','2026-'),v=LY[c]||'';
+            h+=`<tr><td><b>${x.dia}</b></td><td>${x.dia}/${String(mesLY+1).padStart(2,'0')}/2025</td>
+            <td>${DS[x.ds]}</td>
+            <td><input type="number" id="ly-${c}" value="${v}" step="0.01" min="0" style="width:120px"></td></tr>`;
+        });
+        h+=`</tbody></table></div>
+        <button class="btn btn-dourado" style="margin-top:15px" onclick="saveLY2()">💾 Salvar LY de ${MN[mesLY]}</button>
+        <div id="msg-ly"></div></div>`;
         document.getElementById('main-content').innerHTML=h;
     }
-    async function saveLY2(){let d=diasUteis(mesLY,2025);d.forEach(x=>{let c=x.data.replace('2025-','2026-'),v=parseFloat(document.getElementById('ly-'+c).value);if(!isNaN(v)&&v>=0)LY[c]=v;else delete LY[c];});await saveLY();document.getElementById('msg-ly').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
+    async function saveLY2(){
+        let d=diasUteis(mesLY,2025);
+        d.forEach(x=>{
+            let c=x.data.replace('2025-','2026-'),v=parseFloat(document.getElementById('ly-'+c).value);
+            if(!isNaN(v)&&v>=0) LY[c]=v; else delete LY[c];
+        });
+        await saveLY();
+        document.getElementById('msg-ly').innerHTML='<div class="alerta alerta-sucesso">✅ LY salvo!</div>';
+    }
 
+    // ══════════════════════════════
+    // CONFIGURAÇÕES
+    // ══════════════════════════════
     function config(){
         let sm=semanas(mesCfg,2026);
-        let h=`<div class="page-header"><h1>Configurações</h1><div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mesCfg?'ativo':''}" onclick="mesCfg=${i};config()">${m.substring(0,3)}</button>`).join('')}</div></div>
-        <div class="bloco"><h3>Cadastro</h3><div class="form-row"><div class="form-group"><label>Nome</label><input type="text" id="cf-nome"></div><div class="form-group"><label>Meta (R$)</label><input type="number" id="cf-meta" step="0.01" min="0"></div></div><button class="btn btn-rosa" onclick="addV()">💾 Adicionar</button><div id="msg-add"></div>
-        <div class="tabela-scroll" style="margin-top:15px"><table><thead><tr><th>Nome</th><th>Meta</th><th>Dia</th><th>Ação</th></tr></thead><tbody>`;
-        V.forEach((v,i)=>{h+=`<tr><td><input type="text" value="${v.nome}" onchange="renV(${i},this.value)" style="width:130px"></td><td><input type="number" value="${v.meta}" onchange="altM(${i},this.value)" step="0.01" min="0" style="width:110px"></td><td>${fm(v.meta/DU)}</td><td><button class="btn btn-vermelho btn-sm" onclick="remV(${i})">🗑️</button></td></tr>`;});
+        let h=`<div class="page-header"><h1>Configurações</h1>
+        <div class="mes-selector">${MN.map((m,i)=>`<button class="mes-btn ${i===mesCfg?'ativo':''}" onclick="mesCfg=${i};config()">${m.substring(0,3)}</button>`).join('')}</div></div>
+        <div class="bloco"><h3>Cadastro de Vendedoras</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Nome</label><input type="text" id="cf-nome" placeholder="Nome completo"></div>
+            <div class="form-group"><label>Meta Padrão (R$)</label><input type="number" id="cf-meta" step="0.01" min="0" placeholder="25000"></div>
+        </div>
+        <button class="btn btn-rosa" onclick="addV()">➕ Adicionar</button>
+        <div id="msg-add"></div>
+        <div class="tabela-scroll" style="margin-top:15px"><table>
+        <thead><tr><th>Nome</th><th>Meta Padrão</th><th>Meta Diária</th><th>Remover</th></tr></thead><tbody>`;
+        V.forEach((v,i)=>{
+            h+=`<tr>
+            <td><input type="text" value="${v.nome}" onchange="renV(${i},this.value)" style="width:130px"></td>
+            <td><input type="number" value="${v.meta}" onchange="altM(${i},this.value)" step="0.01" min="0" style="width:110px"></td>
+            <td>${fm(v.meta/DU)}</td>
+            <td><button class="btn btn-vermelho btn-sm" onclick="remV(${i})">🗑️</button></td></tr>`;
+        });
         h+=`</tbody></table></div></div>
-        <div class="bloco"><h3>Metas Mensais • ${MN[mesCfg]}</h3><div class="tabela-scroll"><table><thead><tr><th>Vendedora</th><th>Padrão</th><th>Meta ${MN[mesCfg]}</th><th>Dia</th></tr></thead><tbody>`;
-        V.forEach(v=>{let ma=metaMes(v.nome,mesCfg);h+=`<tr><td><b>${v.nome}</b></td><td>${fm(v.meta)}</td><td><input type="number" id="mm-${v.nome.replace(/\s/g,'_')}" value="${ma}" step="0.01" min="0" style="width:120px"></td><td>${fm(ma/DU)}</td></tr>`;});
-        h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px" onclick="saveMM2()">💾 Salvar Metas de ${MN[mesCfg]}</button><div id="msg-mm"></div></div>
-        <div class="bloco"><h3>Metas Semanais • ${MN[mesCfg]}</h3><div class="tabela-scroll"><table><thead><tr><th>Vendedora</th>`;
-        sm.forEach((x,i)=>{h+=`<th>Sem ${i+1}<br><small>${x[0].dia}-${x[x.length-1].dia}</small></th>`;});
+        <div class="bloco"><h3>Metas Mensais • ${MN[mesCfg]}</h3>
+        <div class="tabela-scroll"><table>
+        <thead><tr><th>Vendedora</th><th>Meta Padrão</th><th>Meta ${MN[mesCfg]}</th><th>Meta Diária</th></tr></thead><tbody>`;
+        V.forEach(v=>{
+            let ma=metaMes(v.nome,mesCfg);
+            h+=`<tr><td><b>${v.nome}</b></td><td>${fm(v.meta)}</td>
+            <td><input type="number" id="mm-${v.nome.replace(/\s/g,'_')}" value="${ma}" step="0.01" min="0" style="width:120px"></td>
+            <td>${fm(ma/DU)}</td></tr>`;
+        });
+        h+=`</tbody></table></div>
+        <button class="btn btn-dourado" style="margin-top:12px" onclick="saveMM2()">💾 Salvar Metas de ${MN[mesCfg]}</button>
+        <div id="msg-mm"></div></div>
+        <div class="bloco"><h3>Metas Semanais • ${MN[mesCfg]}</h3>
+        <div class="tabela-scroll"><table><thead><tr><th>Vendedora</th>`;
+        sm.forEach((x,i)=>{ h+=`<th>Sem ${i+1}<br><small>${x[0].dia}-${x[x.length-1].dia}</small></th>`; });
         h+=`</tr></thead><tbody>`;
-        V.forEach(v=>{h+=`<tr><td><b>${v.nome}</b></td>`;sm.forEach((x,i)=>{let ms=metaSem(v.nome,mesCfg,i+1);h+=`<td><input type="number" id="ms-${v.nome.replace(/\s/g,'_')}-S${i+1}" value="${ms}" step="0.01" min="0" style="width:90px"></td>`;});h+=`</tr>`;});
-        h+=`</tbody></table></div><button class="btn btn-dourado" style="margin-top:12px" onclick="saveMS2()">💾 Salvar Metas Semanais</button><div id="msg-ms"></div></div>
-        <div class="bloco"><h3>Metas Loja</h3><div class="form-row"><div class="form-group"><label>Mínima</label><input type="number" id="ml-min" value="${ML.min}" step="0.01"></div><div class="form-group"><label>Máxima</label><input type="number" id="ml-max" value="${ML.max}" step="0.01"></div><div class="form-group"><label>BIG</label><input type="number" id="ml-big" value="${ML.big}" step="0.01"></div></div><button class="btn btn-verde" onclick="saveML2()">💾 Salvar</button><div id="msg-ml"></div></div>`;
+        V.forEach(v=>{
+            h+=`<tr><td><b>${v.nome}</b></td>`;
+            sm.forEach((x,i)=>{
+                let ms=metaSem(v.nome,mesCfg,i+1);
+                h+=`<td><input type="number" id="ms-${v.nome.replace(/\s/g,'_')}-S${i+1}" value="${ms}" step="0.01" min="0" style="width:90px"></td>`;
+            });
+            h+=`</tr>`;
+        });
+        h+=`</tbody></table></div>
+        <button class="btn btn-dourado" style="margin-top:12px" onclick="saveMS2()">💾 Salvar Metas Semanais</button>
+        <div id="msg-ms"></div></div>
+        <div class="bloco"><h3>Metas da Loja</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Meta Mínima (R$)</label><input type="number" id="ml-min" value="${ML.min}" step="0.01"></div>
+            <div class="form-group"><label>Meta Máxima (R$)</label><input type="number" id="ml-max" value="${ML.max}" step="0.01"></div>
+            <div class="form-group"><label>Meta BIG (R$)</label><input type="number" id="ml-big" value="${ML.big}" step="0.01"></div>
+        </div>
+        <button class="btn btn-verde" onclick="saveML2()">💾 Salvar Metas da Loja</button>
+        <div id="msg-ml"></div></div>`;
         document.getElementById('main-content').innerHTML=h;
     }
 
-    async function addV(){let n=document.getElementById('cf-nome').value.trim(),m=parseFloat(document.getElementById('cf-meta').value);if(!n||isNaN(m)||m<=0){document.getElementById('msg-add').innerHTML='<div class="alerta-erro">Preencha corretamente.</div>';return;}if(V.find(v=>v.nome.toLowerCase()===n.toLowerCase())){document.getElementById('msg-add').innerHTML='<div class="alerta-erro">Já existe.</div>';return;}V.push({nome:n,meta:m});await saveV();document.getElementById('cf-nome').value='';document.getElementById('cf-meta').value='';document.getElementById('msg-add').innerHTML='<div class="alerta-sucesso">Adicionada!</div>';config();}
-    async function renV(i,nn){let n=nn.trim();if(!n)return;if(V.find((v,j)=>v.nome.toLowerCase()===n.toLowerCase()&&j!==i)){alert('Já existe.');config();return;}let ant=V[i].nome;V[i].nome=n;L.forEach(l=>{if(l.vend===ant)l.vend=n;});if(MM[ant]){MM[n]=MM[ant];delete MM[ant];}if(MS[ant]){MS[n]=MS[ant];delete MS[ant];}await saveV();await saveL();await saveMM();await saveMS();config();}
+    async function addV(){
+        let n=document.getElementById('cf-nome').value.trim(),m=parseFloat(document.getElementById('cf-meta').value);
+        if(!n||isNaN(m)||m<=0){document.getElementById('msg-add').innerHTML='<div class="alerta alerta-erro">Preencha corretamente.</div>';return;}
+        if(V.find(v=>v.nome.toLowerCase()===n.toLowerCase())){document.getElementById('msg-add').innerHTML='<div class="alerta alerta-erro">Já existe.</div>';return;}
+        V.push({nome:n,meta:m}); await saveV();
+        document.getElementById('cf-nome').value=''; document.getElementById('cf-meta').value='';
+        document.getElementById('msg-add').innerHTML='<div class="alerta alerta-sucesso">✅ Adicionada!</div>';
+        config();
+    }
+    async function renV(i,nn){
+        let n=nn.trim(); if(!n) return;
+        if(V.find((v,j)=>v.nome.toLowerCase()===n.toLowerCase()&&j!==i)){alert('Já existe.');config();return;}
+        let ant=V[i].nome; V[i].nome=n;
+        L.forEach(l=>{if(l.vend===ant)l.vend=n;});
+        if(MM[ant]){MM[n]=MM[ant];delete MM[ant];}
+        if(MS[ant]){MS[n]=MS[ant];delete MS[ant];}
+        await saveV(); await saveL(); await saveMM(); await saveMS();
+        config();
+    }
     async function altM(i,vl){let m=parseFloat(vl);if(isNaN(m)||m<=0){config();return;}V[i].meta=m;await saveV();}
     async function remV(i){if(confirm(`Remover "${V[i].nome}"?`)){V.splice(i,1);await saveV();config();}}
-    async function saveMM2(){let c=MNN[mesCfg];V.forEach(v=>{let inp=document.getElementById('mm-'+v.nome.replace(/\s/g,'_'));if(inp){let val=parseFloat(inp.value);if(!isNaN(val)&&val>0){if(!MM[v.nome])MM[v.nome]={};MM[v.nome][c]=val;}else{if(MM[v.nome])delete MM[v.nome][c];}}});await saveMM();document.getElementById('msg-mm').innerHTML='<div class="alerta-sucesso">Salvo!</div>';}
-    async function saveMS2(){let sm=semanas(mesCfg,2026);V.forEach(v=>{if(!MS[v.nome])MS[v.nome]={};sm.forEach((x,i)=>{let c=MNN[mesCfg]+'_S'+(i+1),inp=document.getElementById('ms-'+v.nome.replace(/\s/g,'_')+'-S'+(i+1));if(inp){let val=parseFloat(inp.value);if(!isNaN(val)&&val>0)MS[v.nome][c]=val;else delete MS[v.nome][c];}});});await saveMS();document.getElementById('msg-ms').innerHTML='<div class="alerta-sucesso">Salvo!</div>';}
-    async function saveML2(){let min=parseFloat(document.getElementById('ml-min').value),max=parseFloat(document.getElementById('ml-max').value),big=parseFloat(document.getElementById('ml-big').value);if(!isNaN(min)&&min>0)ML.min=min;if(!isNaN(max)&&max>0)ML.max=max;if(!isNaN(big)&&big>0)ML.big=big;await saveML();document.getElementById('msg-ml').innerHTML='<div class="alerta-sucesso">Salvo!</div>';}
+    async function saveMM2(){
+        let c=MNN[mesCfg];
+        V.forEach(v=>{let inp=document.getElementById('mm-'+v.nome.replace(/\s/g,'_'));if(inp){let val=parseFloat(inp.value);if(!isNaN(val)&&val>0){if(!MM[v.nome])MM[v.nome]={};MM[v.nome][c]=val;}else{if(MM[v.nome])delete MM[v.nome][c];}}});
+        await saveMM();
+        document.getElementById('msg-mm').innerHTML='<div class="alerta alerta-sucesso">✅ Salvo!</div>';
+    }
+    async function saveMS2(){
+        let sm=semanas(mesCfg,2026);
+        V.forEach(v=>{if(!MS[v.nome])MS[v.nome]={};sm.forEach((x,i)=>{let c=MNN[mesCfg]+'_S'+(i+1),inp=document.getElementById('ms-'+v.nome.replace(/\s/g,'_')+'-S'+(i+1));if(inp){let val=parseFloat(inp.value);if(!isNaN(val)&&val>0)MS[v.nome][c]=val;else delete MS[v.nome][c];}});});
+        await saveMS();
+        document.getElementById('msg-ms').innerHTML='<div class="alerta alerta-sucesso">✅ Salvo!</div>';
+    }
+    async function saveML2(){
+        let min=parseFloat(document.getElementById('ml-min').value),max=parseFloat(document.getElementById('ml-max').value),big=parseFloat(document.getElementById('ml-big').value);
+        if(!isNaN(min)&&min>0)ML.min=min; if(!isNaN(max)&&max>0)ML.max=max; if(!isNaN(big)&&big>0)ML.big=big;
+        await saveML();
+        document.getElementById('msg-ml').innerHTML='<div class="alerta alerta-sucesso">✅ Salvo!</div>';
+    }
 
-    function abreModal(data,vend){
+    // ══════════════════════════════
+    // MODAL LANÇAMENTO
+    // ══════════════════════════════
+    function abreModal(data){
         document.getElementById('modal-titulo').textContent='Lançar Venda';
         document.getElementById('btn-excluir').style.display='none';
         document.getElementById('md-data').value=data||'';
         document.getElementById('md-vend').innerHTML=V.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');
-        document.getElementById('md-valor').value='';document.getElementById('md-pecas').value='';document.getElementById('md-atend').value='';document.getElementById('md-cval').value='';document.getElementById('md-obs').value='';
-        if(data){let lc=L.find(l=>l.data===data);if(lc){document.getElementById('modal-titulo').textContent='Editar Lançamento';document.getElementById('btn-excluir').style.display='inline-flex';document.getElementById('md-vend').value=lc.vend;document.getElementById('md-valor').value=lc.real||'';document.getElementById('md-pecas').value=lc.pecas||'';document.getElementById('md-atend').value=lc.atend||'';document.getElementById('md-cval').value=lc.cval||'';document.getElementById('md-obs').value=lc.obs||'';}}
+        document.getElementById('md-valor').value=''; document.getElementById('md-pecas').value='';
+        document.getElementById('md-atend').value=''; document.getElementById('md-cval').value='';
+        document.getElementById('md-obs').value='';
+        if(data){
+            let lc=L.find(l=>l.data===data);
+            if(lc){
+                document.getElementById('modal-titulo').textContent='Editar Lançamento';
+                document.getElementById('btn-excluir').style.display='inline-flex';
+                document.getElementById('md-vend').value=lc.vend;
+                document.getElementById('md-valor').value=lc.real||'';
+                document.getElementById('md-pecas').value=lc.pecas||'';
+                document.getElementById('md-atend').value=lc.atend||'';
+                document.getElementById('md-cval').value=lc.cval||'';
+                document.getElementById('md-obs').value=lc.obs||'';
+            }
+        }
         document.getElementById('modal-lanc').classList.add('ativo');
     }
-    function fechaModal(){document.getElementById('modal-lanc').classList.remove('ativo');}
+    function fechaModal(){ document.getElementById('modal-lanc').classList.remove('ativo'); }
     async function salvaModal(){
-        let dt=document.getElementById('md-data').value,vn=document.getElementById('md-vend').value,vl=parseFloat(document.getElementById('md-valor').value)||0,pc=parseInt(document.getElementById('md-pecas').value)||0,at=parseInt(document.getElementById('md-atend').value)||0,cv=parseFloat(document.getElementById('md-cval').value)||0,ob=document.getElementById('md-obs').value;
+        let dt=document.getElementById('md-data').value, vn=document.getElementById('md-vend').value,
+            vl=parseFloat(document.getElementById('md-valor').value)||0,
+            pc=parseInt(document.getElementById('md-pecas').value)||0,
+            at=parseInt(document.getElementById('md-atend').value)||0,
+            cv=parseFloat(document.getElementById('md-cval').value)||0,
+            ob=document.getElementById('md-obs').value;
         if(!dt||!vn||vl<=0){alert('Preencha data, vendedora e valor.');return;}
         L=L.filter(l=>!(l.data===dt&&l.vend===vn));
         L.push({data:dt,vend:vn,real:vl,pecas:pc,atend:at,cval:cv,obs:ob});
-        await saveL();fechaModal();lancamentos();
+        await saveL(); fechaModal(); lancamentos();
     }
     async function excluir(){
-        if(!confirm('Excluir?'))return;
-        let dt=document.getElementById('md-data').value,vn=document.getElementById('md-vend').value;
+        if(!confirm('Excluir este lançamento?')) return;
+        let dt=document.getElementById('md-data').value, vn=document.getElementById('md-vend').value;
         L=L.filter(l=>!(l.data===dt&&l.vend===vn));
-        await saveL();fechaModal();lancamentos();
+        await saveL(); fechaModal(); lancamentos();
     }
 
+    // ══════════════════════════════
+    // CONFIGURAÇÃO LOCAL
+    // ══════════════════════════════
+    function salvarConfig(){
+        const url = document.getElementById('cfg-url')?.value?.trim();
+        const key = document.getElementById('cfg-key')?.value?.trim();
+        if(!url || !key){ alert('Preencha a URL e a chave.'); return; }
+        localStorage.setItem('sb_url', url);
+        localStorage.setItem('sb_key', key);
+        location.reload();
+    }
+    window.salvarConfig = salvarConfig;
+
+    // Iniciar
     load();
-})();
 </script>
 </body>
 </html>
