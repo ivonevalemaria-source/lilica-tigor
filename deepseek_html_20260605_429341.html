@@ -62,7 +62,6 @@
         .btn-sm { padding:5px 10px; font-size:10px; border-radius:6px; }
         .btn-vermelho { background:#e53935; color:#fff; } .btn-dourado { background:var(--dourado); color:#333; }
         .btn-verde { background:var(--verde); color:#fff; }
-        .btn-azul { background:#1565C0; color:#fff; }
         .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px; }
         .form-group { flex:1; min-width:130px; }
         .form-group label { display:block; font-size:10px; font-weight:700; color:#888; margin-bottom:3px; text-transform:uppercase; }
@@ -84,6 +83,7 @@
         .semana-card .semana-meta { font-size:11px; color:#888; }
         .semana-card .semana-falta { font-size:10px; font-weight:600; }
         .loading { text-align:center; padding:40px; color:#999; }
+        .erro-conexao { text-align:center; padding:40px; color:var(--vermelho); background:#ffebee; border-radius:14px; margin:20px; }
         @media(max-width:900px) { .sidebar { width:55px; } .sidebar-logo h2, .sidebar-logo .ano, .sidebar-nav a span, .nav-label { display:none; } .sidebar-nav a { justify-content:center; padding:14px; } .main-content { margin-left:55px; width:calc(100%-55px); padding:15px; } .graficos-grid { grid-template-columns:1fr; } }
         @media(max-width:500px) { .cards-grid { grid-template-columns:1fr; } }
     </style>
@@ -109,7 +109,6 @@
     <div class="loading">⏳ Conectando ao Supabase...</div>
 </main>
 
-<!-- MODAL DE LANÇAMENTO/EDIÇÃO -->
 <div class="modal-overlay" id="modal-lanc">
     <div class="modal">
         <h3 id="modal-titulo">Lançar Venda</h3>
@@ -127,10 +126,19 @@
 </div>
 
 <script>
-// ==================== SUPABASE CLIENT ====================
-const SUPABASE_URL = 'https://seu-projeto.supabase.co';
-const SUPABASE_ANON_KEY = 'sua-chave-anon';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ==================== CONEXÃO SUPABASE ====================
+// Usa variáveis de ambiente do Vercel
+const SUPABASE_URL = window.ENV?.SUPABASE_URL || 'https://seu-projeto.supabase.co';
+const SUPABASE_ANON_KEY = window.ENV?.SUPABASE_ANON_KEY || 'sua-chave-anon';
+
+let supabase;
+try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase conectado:', SUPABASE_URL);
+} catch(e) {
+    console.error('❌ Erro Supabase:', e);
+    document.getElementById('main-content').innerHTML = '<div class="erro-conexao"><h3>❌ Erro de Conexão</h3><p>Não foi possível conectar ao Supabase.</p><button class="btn btn-rosa" onclick="location.reload()">🔄 Tentar novamente</button></div>';
+}
 
 // ==================== CONSTANTES ====================
 const DU=22, MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -139,39 +147,55 @@ let ML={min:100000,max:115000,big:138000};
 const DIAS_SEMANA=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let V=[], L=[], LY_DIA={}, METAS_MENSAIS={}, METAS_SEMANAIS={};
 let MS=new Date().getMonth(), MS_LY=new Date().getMonth(), VEND_SEL=0, MS_CONFIG=new Date().getMonth();
-let editandoId=null;
 
-// ==================== SUPABASE FUNCTIONS ====================
+// ==================== FUNÇÕES SUPABASE ====================
 async function carregarDados(){
+    if(!supabase){
+        V=[{nome:"Ana",meta:40000},{nome:"Beatriz",meta:40000},{nome:"Carla",meta:40000}];
+        L=[]; LY_DIA={}; METAS_MENSAIS={}; METAS_SEMANAIS={};
+        rd();
+        return;
+    }
     try{
-        let {data:vend}=await supabase.from('vendedoras').select('*');
-        if(vend && vend.length>0) V=vend.map(v=>({id:v.id,nome:v.nome,meta:v.meta}));
+        let {data:vend,error:errV}=await supabase.from('vendedoras').select('*');
+        if(errV) throw errV;
+        if(vend && vend.length>0) V=vend.map(v=>({nome:v.nome,meta:v.meta}));
         else V=[{nome:"Ana",meta:40000},{nome:"Beatriz",meta:40000},{nome:"Carla",meta:40000}];
 
-        let {data:lanc}=await supabase.from('lancamentos').select('*');
-        if(lanc) L=lanc.map(l=>({id:l.id,data:l.data,vend:l.vendedora,real:l.realizado,pecas:l.pecas||0,atend:l.atendimentos||0,cval:l.cond_valor||0,obs:l.obs||''}));
+        let {data:lanc,error:errL}=await supabase.from('lancamentos').select('*');
+        if(errL) throw errL;
+        if(lanc) L=lanc.map(l=>({data:l.data,vend:l.vendedora,real:l.realizado,pecas:l.pecas||0,atend:l.atendimentos||0,cval:l.cond_valor||0,obs:l.obs||''}));
 
-        let {data:ly}=await supabase.from('ly_diario').select('*');
+        let {data:ly,error:errLY}=await supabase.from('ly_diario').select('*');
+        if(errLY) throw errLY;
         if(ly){ LY_DIA={}; ly.forEach(l=>{LY_DIA[l.data]=l.valor;}); }
 
-        let {data:mm}=await supabase.from('metas_mensais').select('*');
+        let {data:mm,error:errMM}=await supabase.from('metas_mensais').select('*');
+        if(errMM) throw errMM;
         if(mm){ METAS_MENSAIS={}; mm.forEach(m=>{if(!METAS_MENSAIS[m.vendedora])METAS_MENSAIS[m.vendedora]={};METAS_MENSAIS[m.vendedora][m.mes]=m.valor;}); }
 
-        let {data:ms}=await supabase.from('metas_semanais').select('*');
+        let {data:ms,error:errMS}=await supabase.from('metas_semanais').select('*');
+        if(errMS) throw errMS;
         if(ms){ METAS_SEMANAIS={}; ms.forEach(m=>{if(!METAS_SEMANAIS[m.vendedora])METAS_SEMANAIS[m.vendedora]={};METAS_SEMANAIS[m.vendedora][m.chave]=m.valor;}); }
 
-        let {data:ml}=await supabase.from('metas_loja').select('*').limit(1);
+        let {data:ml,error:errML}=await supabase.from('metas_loja').select('*').limit(1);
+        if(errML) throw errML;
         if(ml && ml.length>0) ML={min:ml[0].minima,max:ml[0].maxima,big:ml[0].big};
-    }catch(e){console.error('Erro:',e);}
-    rd();
+        
+        console.log('✅ Dados carregados! Vendedoras:',V.length,'Lançamentos:',L.length);
+        rd();
+    }catch(e){
+        console.error('❌ Erro:',e);
+        document.getElementById('main-content').innerHTML='<div class="erro-conexao"><h3>❌ Erro ao carregar</h3><p>'+e.message+'</p><button class="btn btn-rosa" onclick="location.reload()">🔄 Tentar novamente</button></div>';
+    }
 }
 
-async function salvarVendedoras(){await supabase.from('vendedoras').delete().neq('id',0);if(V.length>0)await supabase.from('vendedoras').insert(V.map(v=>({nome:v.nome,meta:v.meta})));}
-async function salvarLancamentos(){await supabase.from('lancamentos').delete().neq('id',0);if(L.length>0){let batch=L.map(l=>({data:l.data,vendedora:l.vend,realizado:l.real,pecas:l.pecas,atendimentos:l.atend,cond_valor:l.cval,obs:l.obs}));await supabase.from('lancamentos').insert(batch);}}
-async function salvarLY(){await supabase.from('ly_diario').delete().neq('id',0);let batch=Object.entries(LY_DIA).map(([k,v])=>({data:k,valor:v}));if(batch.length>0)await supabase.from('ly_diario').insert(batch);}
-async function salvarMM(){await supabase.from('metas_mensais').delete().neq('id',0);let batch=[];Object.entries(METAS_MENSAIS).forEach(([v,meses])=>{Object.entries(meses).forEach(([m,val])=>{batch.push({vendedora:v,mes:m,valor:val});});});if(batch.length>0)await supabase.from('metas_mensais').insert(batch);}
-async function salvarMS(){await supabase.from('metas_semanais').delete().neq('id',0);let batch=[];Object.entries(METAS_SEMANAIS).forEach(([v,sems])=>{Object.entries(sems).forEach(([c,val])=>{batch.push({vendedora:v,chave:c,valor:val});});});if(batch.length>0)await supabase.from('metas_semanais').insert(batch);}
-async function salvarML(){await supabase.from('metas_loja').delete().neq('id',0);await supabase.from('metas_loja').insert({minima:ML.min,maxima:ML.max,big:ML.big});}
+async function salvarVendedoras(){try{await supabase.from('vendedoras').delete().neq('id',0);if(V.length>0)await supabase.from('vendedoras').insert(V.map(v=>({nome:v.nome,meta:v.meta})));}catch(e){console.error(e);}}
+async function salvarLancamentos(){try{await supabase.from('lancamentos').delete().neq('id',0);if(L.length>0){let batch=L.map(l=>({data:l.data,vendedora:l.vend,realizado:l.real,pecas:l.pecas,atendimentos:l.atend,cond_valor:l.cval,obs:l.obs}));await supabase.from('lancamentos').insert(batch);}}catch(e){console.error(e);}}
+async function salvarLY(){try{await supabase.from('ly_diario').delete().neq('id',0);let batch=Object.entries(LY_DIA).map(([k,v])=>({data:k,valor:v}));if(batch.length>0)await supabase.from('ly_diario').insert(batch);}catch(e){console.error(e);}}
+async function salvarMM(){try{await supabase.from('metas_mensais').delete().neq('id',0);let batch=[];Object.entries(METAS_MENSAIS).forEach(([v,meses])=>{Object.entries(meses).forEach(([m,val])=>{batch.push({vendedora:v,mes:m,valor:val});});});if(batch.length>0)await supabase.from('metas_mensais').insert(batch);}catch(e){console.error(e);}}
+async function salvarMS(){try{await supabase.from('metas_semanais').delete().neq('id',0);let batch=[];Object.entries(METAS_SEMANAIS).forEach(([v,sems])=>{Object.entries(sems).forEach(([c,val])=>{batch.push({vendedora:v,chave:c,valor:val});});});if(batch.length>0)await supabase.from('metas_semanais').insert(batch);}catch(e){console.error(e);}}
+async function salvarML(){try{await supabase.from('metas_loja').delete().neq('id',0);await supabase.from('metas_loja').insert({minima:ML.min,maxima:ML.max,big:ML.big});}catch(e){console.error(e);}}
 
 // ==================== UTILITÁRIOS ====================
 function fm(v){return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
@@ -300,10 +324,8 @@ async function svMM2(){let chave=MNN[MS_CONFIG];V.forEach(v=>{let input=document
 async function svMS2(){let semanas=sem(MS_CONFIG,2026);V.forEach(v=>{if(!METAS_SEMANAIS[v.nome])METAS_SEMANAIS[v.nome]={};semanas.forEach((sm,i)=>{let chave=`${MNN[MS_CONFIG]}_S${i+1}`;let input=document.getElementById('metasem-'+v.nome.replace(/\s/g,'_')+'-S'+(i+1));if(input){let val=parseFloat(input.value);if(!isNaN(val)&&val>0)METAS_SEMANAIS[v.nome][chave]=val;else delete METAS_SEMANAIS[v.nome][chave];}});});await salvarMS();document.getElementById('msg-cfg-metassem').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
 async function svML2(){let min=parseFloat(document.getElementById('cfg-loja-min').value),max=parseFloat(document.getElementById('cfg-loja-max').value),big=parseFloat(document.getElementById('cfg-loja-big').value);if(!isNaN(min)&&min>0)ML.min=min;if(!isNaN(max)&&max>0)ML.max=max;if(!isNaN(big)&&big>0)ML.big=big;await salvarML();document.getElementById('msg-cfg-loja').innerHTML='<div class="alerta alerta-sucesso">Salvo!</div>';}
 
-// ==================== MODAL (LANÇAR/EDITAR/EXCLUIR) ====================
 function abreModal(data, vendedora){
     document.getElementById('modal-titulo').textContent='Lançar Venda';
-    document.getElementById('md-id').value='';
     document.getElementById('btn-excluir').style.display='none';
     document.getElementById('md-data').value=data||'';
     document.getElementById('md-vend').innerHTML=V.map(v=>`<option value="${v.nome}" ${v.nome===vendedora?'selected':''}>${v.nome}</option>`).join('');
@@ -312,45 +334,28 @@ function abreModal(data, vendedora){
     document.getElementById('md-atend').value='';
     document.getElementById('md-cval').value='';
     document.getElementById('md-obs').value='';
-    editandoId=null;
     
-    // Se tiver data e vendedora, busca lançamento existente para edição
     if(data && vendedora){
         let existente=L.find(l=>l.data===data && l.vend===vendedora);
         if(existente){
             document.getElementById('modal-titulo').textContent='Editar Lançamento';
-            document.getElementById('md-id').value=existente.id||'';
             document.getElementById('btn-excluir').style.display='inline-flex';
             document.getElementById('md-valor').value=existente.real||'';
             document.getElementById('md-pecas').value=existente.pecas||'';
             document.getElementById('md-atend').value=existente.atend||'';
             document.getElementById('md-cval').value=existente.cval||'';
             document.getElementById('md-obs').value=existente.obs||'';
-            editandoId=existente.id;
         }
     }
     document.getElementById('modal-lanc').classList.add('ativo');
 }
 
-function fechaModal(){
-    document.getElementById('modal-lanc').classList.remove('ativo');
-    editandoId=null;
-}
+function fechaModal(){document.getElementById('modal-lanc').classList.remove('ativo');}
 
 async function salvaModal(){
-    let dt=document.getElementById('md-data').value;
-    let vn=document.getElementById('md-vend').value;
-    let vl=parseFloat(document.getElementById('md-valor').value)||0;
-    let pc=parseInt(document.getElementById('md-pecas').value)||0;
-    let at=parseInt(document.getElementById('md-atend').value)||0;
-    let cv=parseFloat(document.getElementById('md-cval').value)||0;
-    let ob=document.getElementById('md-obs').value;
-    
+    let dt=document.getElementById('md-data').value,vn=document.getElementById('md-vend').value,vl=parseFloat(document.getElementById('md-valor').value)||0,pc=parseInt(document.getElementById('md-pecas').value)||0,at=parseInt(document.getElementById('md-atend').value)||0,cv=parseFloat(document.getElementById('md-cval').value)||0,ob=document.getElementById('md-obs').value;
     if(!dt||!vn||vl<=0){alert('Preencha data, vendedora e valor.');return;}
-    
-    // Remove lançamento existente (se estiver editando)
     L=L.filter(l=>!(l.data===dt&&l.vend===vn));
-    // Adiciona novo
     L.push({data:dt,vend:vn,real:vl,pecas:pc,atend:at,cval:cv,obs:ob});
     await salvarLancamentos();
     fechaModal();
@@ -359,15 +364,14 @@ async function salvaModal(){
 
 async function excluirLancamento(){
     if(!confirm('Excluir este lançamento?'))return;
-    let dt=document.getElementById('md-data').value;
-    let vn=document.getElementById('md-vend').value;
+    let dt=document.getElementById('md-data').value,vn=document.getElementById('md-vend').value;
     L=L.filter(l=>!(l.data===dt&&l.vend===vn));
     await salvarLancamentos();
     fechaModal();
     rl();
 }
 
-// Iniciar
+// ✅ INICIAR SISTEMA
 carregarDados();
 </script>
 </body>
